@@ -2,6 +2,7 @@ use std::fmt::{self, Debug, Formatter};
 // use std::hash::{Hash, Hasher};
 #[cfg(feature = "abomonation-serialize")]
 use std::io::{Result as IOResult, Write};
+use std::mem;
 use std::ops::Mul;
 
 #[cfg(feature = "serde-serialize-no-std")]
@@ -57,11 +58,11 @@ impl<T: Debug, const R: usize, const C: usize> Debug for ArrayStorage<T, R, C> {
 unsafe impl<T, const R: usize, const C: usize> Storage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
     type RStride = Const<1>;
     type CStride = Const<R>;
+    type MaybeUninit = ArrayStorage<mem::MaybeUninit<T>, R, C>;
 
     #[inline]
     fn ptr(&self) -> *const T {
@@ -94,6 +95,7 @@ where
     #[inline]
     fn clone_owned(&self) -> Owned<T, Const<R>, Const<C>>
     where
+        T: Clone,
         DefaultAllocator: Allocator<T, Const<R>, Const<C>>,
     {
         let it = self.as_slice().iter().cloned();
@@ -109,7 +111,6 @@ where
 unsafe impl<T, const R: usize, const C: usize> StorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
     #[inline]
@@ -126,7 +127,6 @@ where
 unsafe impl<T, const R: usize, const C: usize> ContiguousStorage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }
@@ -134,7 +134,6 @@ where
 unsafe impl<T, const R: usize, const C: usize> ContiguousStorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }

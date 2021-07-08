@@ -51,7 +51,7 @@ macro_rules! unimplemented_or_uninitialized_generic {
 /// These functions should only be used when working on dimension-generic code.
 impl<T: Scalar, R: Dim, C: Dim> OMatrix<T, R, C>
 where
-    DefaultAllocator: Allocator<T, R, C>,
+    DefaultAllocator: Allocator<T, R, C>
 {
     /// Creates a new uninitialized matrix.
     ///
@@ -59,8 +59,8 @@ where
     /// If the matrix has a compile-time dimension, this panics
     /// if `nrows != R::to_usize()` or `ncols != C::to_usize()`.
     #[inline]
-    pub unsafe fn new_uninitialized_generic(nrows: R, ncols: C) -> mem::MaybeUninit<Self> {
-        Self::from_uninitialized_data(DefaultAllocator::allocate_uninitialized(nrows, ncols))
+    pub unsafe fn new_uninitialized_generic(nrows: R, ncols: C) -> OMatrix<mem::MaybeUninit<T>, R, C> {
+        OMatrix::from_data(DefaultAllocator::allocate_uninitialized(nrows, ncols))
     }
 
     /// Creates a matrix with all its elements set to `elem`.

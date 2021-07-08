@@ -17,12 +17,14 @@ use crate::base::{DefaultAllocator, Scalar};
 ///
 /// Every allocator must be both static and dynamic. Though not all implementations may share the
 /// same `Buffer` type.
-pub trait Allocator<T: Scalar, R: Dim, C: Dim = U1>: Any + Sized {
+pub trait Allocator<T, R: Dim, C: Dim = U1>: Any + Sized {
     /// The type of buffer this allocator can instanciate.
-    type Buffer: ContiguousStorageMut<T, R, C> + Clone;
+    type Buffer: ContiguousStorageMut<T, R, C>;
+
+    type UninitBuffer: ContiguousStorageMut<mem::MaybeUninit<T>, R, C>;
 
     /// Allocates a buffer with the given number of rows and columns without initializing its content.
-    unsafe fn allocate_uninitialized(nrows: R, ncols: C) -> mem::MaybeUninit<Self::Buffer>;
+    unsafe fn allocate_uninitialized(nrows: R, ncols: C) -> Self::UninitBuffer;
 
     /// Allocates a buffer initialized with the content of the given iterator.
     fn allocate_from_iterator<I: IntoIterator<Item = T>>(
@@ -34,7 +36,7 @@ pub trait Allocator<T: Scalar, R: Dim, C: Dim = U1>: Any + Sized {
 
 /// A matrix reallocator. Changes the size of the memory buffer that initially contains (RFrom ×
 /// CFrom) elements to a smaller or larger size (RTo, CTo).
-pub trait Reallocator<T: Scalar, RFrom: Dim, CFrom: Dim, RTo: Dim, CTo: Dim>:
+pub trait Reallocator<T, RFrom: Dim, CFrom: Dim, RTo: Dim, CTo: Dim>:
     Allocator<T, RFrom, CFrom> + Allocator<T, RTo, CTo>
 {
     /// Reallocates a buffer of shape `(RTo, CTo)`, possibly reusing a previously allocated buffer
