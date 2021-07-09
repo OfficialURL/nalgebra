@@ -1,31 +1,44 @@
 //! Abstract definition of a matrix data storage.
 
-use std::{mem, ptr};
+use std::ptr;
 
-use crate::base::allocator::{Allocator, SameShapeC, SameShapeR};
+use crate::base::allocator::{Allocator, BaseAllocator, SameShapeC, SameShapeR};
 use crate::base::default_allocator::DefaultAllocator;
 use crate::base::dimension::{Dim, U1};
-use crate::base::Scalar;
 
 /*
  * Aliases for allocation results.
  */
 /// The data storage for the sum of two matrices with dimensions `(R1, C1)` and `(R2, C2)`.
 pub type SameShapeStorage<T, R1, C1, R2, C2> =
-    <DefaultAllocator as Allocator<T, SameShapeR<R1, R2>, SameShapeC<C1, C2>>>::Buffer;
+    <DefaultAllocator as BaseAllocator<T, SameShapeR<R1, R2>, SameShapeC<C1, C2>>>::Buffer;
 
 // TODO: better name than Owned ?
 /// The owned data storage that can be allocated from `S`.
-pub type Owned<T, R, C = U1> = <DefaultAllocator as Allocator<T, R, C>>::Buffer;
+pub type Owned<T, R, C = U1> = <DefaultAllocator as BaseAllocator<T, R, C>>::Buffer;
 
 /// The row-stride of the owned data storage for a buffer of dimension `(R, C)`.
 pub type RStride<T, R, C = U1> =
-    <<DefaultAllocator as Allocator<T, R, C>>::Buffer as Storage<T, R, C>>::RStride;
+    <<DefaultAllocator as BaseAllocator<T, R, C>>::Buffer as Storage<T, R, C>>::RStride;
 
 /// The column-stride of the owned data storage for a buffer of dimension `(R, C)`.
 pub type CStride<T, R, C = U1> =
-    <<DefaultAllocator as Allocator<T, R, C>>::Buffer as Storage<T, R, C>>::CStride;
+    <<DefaultAllocator as BaseAllocator<T, R, C>>::Buffer as Storage<T, R, C>>::CStride;
 
+/// A trait for any data storage type that has an uninitialized field.
+// TODO: make public via the Storage trait instead?
+pub(crate) unsafe trait Uninit {
+    /// The corresponding initialized type.
+    type Init;
+
+    /// Extracts the data from the data storage into an initialized data storage.
+    /// This should be a zero-cost operation.
+    ///
+    /// # Safety
+    /// If any single field in the data storage has not yet been initialized, undefined
+    /// behavior will occur.
+    unsafe fn assume_init(self) -> Self::Init;
+}
 
 /// The trait shared by all matrix data storage.
 ///
@@ -42,8 +55,6 @@ pub unsafe trait Storage<T, R: Dim, C: Dim = U1>: Sized {
 
     /// The static stride of this storage's columns.
     type CStride: Dim;
-
-    type MaybeUninit: Storage<mem::MaybeUninit<T>, R, C>;
 
     /// The matrix data pointer.
     fn ptr(&self) -> *const T;
@@ -100,7 +111,7 @@ pub unsafe trait Storage<T, R: Dim, C: Dim = U1>: Sized {
     /// # Safety
     /// This method is unsafe because unsafe code relies on this properties to performe
     /// some low-lever optimizations.
-    unsafe fn is_contiguous(&self) -> bool;
+    fn is_contiguous(&self) -> bool;
 
     /// Retrieves the data buffer as a contiguous slice.
     ///
@@ -122,16 +133,6 @@ pub unsafe trait Storage<T, R: Dim, C: Dim = U1>: Sized {
     where
         T: Clone,
         DefaultAllocator: Allocator<T, R, C>;
-
-    /// Extracts the data from the data storage into an initialized data storage.
-    /// This should be a zero-cost operation.
-    ///
-    /// # Safety
-    /// If any single field in the data storage has not yet been initialized, undefined
-    /// behavior will occur.
-    unsafe fn assume_init(maybe_uninit: Self::MaybeUninit) -> Self {
-        mem::transmute(maybe_uninit)
-    }
 }
 
 /// Trait implemented by matrix data storage that can provide a mutable access to its elements.
@@ -229,7 +230,6 @@ pub unsafe trait ContiguousStorageMut<T, R: Dim, C: Dim = U1>:
 /// A matrix storage that can be reshaped in-place.
 pub trait ReshapableStorage<T, R1, C1, R2, C2>: Storage<T, R1, C1>
 where
-    T: Scalar,
     R1: Dim,
     C1: Dim,
     R2: Dim,

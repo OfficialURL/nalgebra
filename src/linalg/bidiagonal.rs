@@ -82,16 +82,16 @@ where
         );
 
         let mut diagonal =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(min_nrows_ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(min_nrows_ncols, Const::<1>) };
         let mut off_diagonal = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(
+             Matrix::new_uninitialized_generic(
                 min_nrows_ncols.sub(Const::<1>),
                 Const::<1>
             )
         };
         let mut axis_packed =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(ncols, Const::<1>) };
-        let mut work = unsafe { crate::unimplemented_or_uninitialized_generic!(nrows, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(ncols, Const::<1>) };
+        let mut work = unsafe {  Matrix::new_uninitialized_generic(nrows, Const::<1>) };
 
         let upper_diagonal = nrows.value() >= ncols.value();
         if upper_diagonal {
@@ -250,9 +250,9 @@ where
 
         let mut res = Matrix::identity_generic(min_nrows_ncols, ncols);
         let mut work =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(min_nrows_ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(min_nrows_ncols, Const::<1>) };
         let mut axis_packed =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(ncols, Const::<1>) };
 
         let shift = self.axis_shift().1;
 

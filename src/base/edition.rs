@@ -53,9 +53,7 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     {
         let irows = irows.into_iter();
         let ncols = self.data.shape().1;
-        let mut res = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(Dynamic::new(irows.len()), ncols)
-        };
+        let mut res = Matrix::new_uninitialized_generic(Dynamic::new(irows.len()), ncols);
 
         // First, check that all the indices from irows are valid.
         // This will allow us to use unchecked access in the inner loop.
@@ -71,12 +69,12 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
             for (destination, source) in irows.clone().enumerate() {
                 unsafe {
                     *res.vget_unchecked_mut(destination) =
-                        src.vget_unchecked(*source).inlined_clone()
+                        mem::MaybeUninit::new(src.vget_unchecked(*source).inlined_clone())
                 }
             }
         }
 
-        res
+        res.assume_init()
     }
 
     /// Creates a new matrix by extracting the given set of columns from `self`.
@@ -90,9 +88,7 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     {
         let icols = icols.into_iter();
         let nrows = self.data.shape().0;
-        let mut res = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(nrows, Dynamic::new(icols.len()))
-        };
+        let mut res = Matrix::new_uninitialized_generic(nrows, Dynamic::new(icols.len()));
 
         for (destination, source) in icols.enumerate() {
             res.column_mut(destination).copy_from(&self.column(*source))
@@ -910,9 +906,7 @@ impl<T: Scalar> OMatrix<T, Dynamic, Dynamic> {
     where
         DefaultAllocator: Reallocator<T, Dynamic, Dynamic, Dynamic, Dynamic>,
     {
-        let placeholder = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(Dynamic::new(0), Dynamic::new(0))
-        };
+        let placeholder = Matrix::new_uninitialized_generic(Dynamic::new(0), Dynamic::new(0));
         let old = mem::replace(self, placeholder);
         let new = old.resize(new_nrows, new_ncols, val);
         let _ = mem::replace(self, new);
@@ -935,9 +929,7 @@ where
     where
         DefaultAllocator: Reallocator<T, Dynamic, C, Dynamic, C>,
     {
-        let placeholder = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(Dynamic::new(0), self.data.shape().1)
-        };
+        let placeholder = Matrix::new_uninitialized_generic(Dynamic::new(0), self.data.shape().1);
         let old = mem::replace(self, placeholder);
         let new = old.resize_vertically(new_nrows, val);
         let _ = mem::replace(self, new);
@@ -960,9 +952,7 @@ where
     where
         DefaultAllocator: Reallocator<T, R, Dynamic, R, Dynamic>,
     {
-        let placeholder = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(self.data.shape().0, Dynamic::new(0))
-        };
+        let placeholder = Matrix::new_uninitialized_generic(self.data.shape().0, Dynamic::new(0));
         let old = mem::replace(self, placeholder);
         let new = old.resize_horizontally(new_ncols, val);
         let _ = mem::replace(self, new);

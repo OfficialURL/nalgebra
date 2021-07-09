@@ -19,13 +19,12 @@ use std::mem;
 #[cfg(feature = "abomonation-serialize")]
 use abomonation::Abomonation;
 
-use crate::base::allocator::Allocator;
+use crate::base::allocator::{Allocator, BaseAllocator};
 use crate::base::default_allocator::DefaultAllocator;
 use crate::base::dimension::{Const, ToTypenum};
 use crate::base::storage::{
-    ContiguousStorage, ContiguousStorageMut, Owned, ReshapableStorage, Storage, StorageMut,
+    ContiguousStorage, ContiguousStorageMut, Owned, ReshapableStorage, Storage, StorageMut, Uninit,
 };
-use crate::base::Scalar;
 
 /*
  *
@@ -55,14 +54,26 @@ impl<T: Debug, const R: usize, const C: usize> Debug for ArrayStorage<T, R, C> {
     }
 }
 
+unsafe impl<T, const R: usize, const C: usize> Uninit for ArrayStorage<mem::MaybeUninit<T>, R, C> {
+    type Init = ArrayStorage<T, R, C>;
+
+    #[inline]
+    unsafe fn assume_init(self) -> <Self as Uninit>::Init
+    where
+        Self: Uninit,
+    {
+        // Safety: MaybeUninit<T> and T have the same memory layout, and so do arrays based on these.
+        mem::transmute(self)
+    }
+}
+
 unsafe impl<T, const R: usize, const C: usize> Storage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
     type RStride = Const<1>;
     type CStride = Const<R>;
-    type MaybeUninit = ArrayStorage<mem::MaybeUninit<T>, R, C>;
 
     #[inline]
     fn ptr(&self) -> *const T {
@@ -80,7 +91,7 @@ where
     }
 
     #[inline]
-    unsafe fn is_contiguous(&self) -> bool {
+    fn is_contiguous(&self) -> bool {
         true
     }
 
@@ -111,7 +122,7 @@ where
 unsafe impl<T, const R: usize, const C: usize> StorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
@@ -127,21 +138,20 @@ where
 unsafe impl<T, const R: usize, const C: usize> ContiguousStorage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }
 
 unsafe impl<T, const R: usize, const C: usize> ContiguousStorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
-    DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }
 
 impl<T, const R1: usize, const C1: usize, const R2: usize, const C2: usize>
     ReshapableStorage<T, Const<R1>, Const<C1>, Const<R2>, Const<C2>> for ArrayStorage<T, R1, C1>
 where
-    T: Scalar,
     Const<R1>: ToTypenum,
     Const<C1>: ToTypenum,
     Const<R2>: ToTypenum,

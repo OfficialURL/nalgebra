@@ -11,7 +11,7 @@ use crate::base::constraint::{
     AreMultipliable, DimEq, SameNumberOfColumns, SameNumberOfRows, ShapeConstraint,
 };
 use crate::base::dimension::{Const, Dim, Dynamic, U1, U2, U3, U4};
-use crate::base::storage::{Storage, StorageMut};
+use crate::base::storage::{Storage, StorageMut};use crate::base::storage::Uninit;
 use crate::base::{
     DVectorSlice, DefaultAllocator, Matrix, Scalar, SquareMatrix, Vector, VectorSlice,
 };
@@ -1337,9 +1337,8 @@ where
         ShapeConstraint: DimEq<D1, D1> + DimEq<D1, R3> + DimEq<C3, D4>,
         DefaultAllocator: Allocator<T, D1>,
     {
-        let mut work = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(self.data.shape().0, Const::<1>)
-        };
+        // ***DANGER*** I STILL NEED TO FIX THIS ONE
+        let mut work = unsafe{Matrix::new_uninitialized_generic(self.data.shape().0, Const::<1>).assume_init()};
         self.quadform_tr_with_workspace(&mut work, alpha, lhs, mid, beta)
     }
 
@@ -1432,9 +1431,9 @@ where
         ShapeConstraint: DimEq<D2, R3> + DimEq<D1, C3> + AreMultipliable<C3, R3, D2, U1>,
         DefaultAllocator: Allocator<T, D2>,
     {
-        let mut work = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(mid.data.shape().0, Const::<1>)
-        };
+      
+        // ***DANGER*** I STILL NEED TO FIX THIS ONE
+          let mut work =  unsafe{Matrix::new_uninitialized_generic(mid.data.shape().0, Const::<1>) .assume_init()};
         self.quadform_with_workspace(&mut work, alpha, mid, rhs, beta)
     }
 }

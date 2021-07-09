@@ -55,7 +55,7 @@ where
         let min_nrows_ncols = nrows.min(ncols);
 
         let mut diag =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(min_nrows_ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(min_nrows_ncols, Const::<1>) };
 
         if min_nrows_ncols.value() == 0 {
             return QR { qr: matrix, diag };

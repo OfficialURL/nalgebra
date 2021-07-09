@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::allocator::Allocator;
-use crate::base::{DefaultAllocator, OMatrix, OVector};
+use crate::base::{DefaultAllocator, OMatrix, OVector,Matrix};
 use crate::dimension::{Const, DimDiff, DimSub, U1};
 use crate::storage::Storage;
 use simba::scalar::ComplexField;
@@ -48,9 +48,8 @@ where
 {
     /// Computes the Hessenberg decomposition using householder reflections.
     pub fn new(hess: OMatrix<T, D, D>) -> Self {
-        let mut work = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(hess.data.shape().0, Const::<1>)
-        };
+        let mut work =
+            unsafe { Matrix::new_uninitialized_generic(hess.data.shape().0, Const::<1>) };
         Self::new_with_workspace(hess, &mut work)
     }
 
@@ -76,9 +75,8 @@ where
             "Hessenberg: invalid workspace size."
         );
 
-        let mut subdiag = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(dim.sub(Const::<1>), Const::<1>)
-        };
+        let mut subdiag =
+            unsafe { Matrix::new_uninitialized_generic(dim.sub(Const::<1>), Const::<1>) };
 
         if dim.value() == 0 {
             return Hessenberg { hess, subdiag };

@@ -67,7 +67,7 @@ where
         let mut p = PermutationSequence::identity_generic(min_nrows_ncols);
 
         let mut diag =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(min_nrows_ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(min_nrows_ncols, Const::<1>) };
 
         if min_nrows_ncols.value() == 0 {
             return ColPivQR {

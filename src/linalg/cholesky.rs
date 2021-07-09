@@ -238,7 +238,7 @@ where
 
         // loads the data into a new matrix with an additional jth row/column
         let mut chol = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(
+             Matrix::new_uninitialized_generic(
                 self.chol.data.shape().0.add(Const::<1>),
                 self.chol.data.shape().1.add(Const::<1>)
             )
@@ -304,7 +304,7 @@ where
 
         // loads the data into a new matrix except for the jth row/column
         let mut chol = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(
+             Matrix::new_uninitialized_generic(
                 self.chol.data.shape().0.sub(Const::<1>),
                 self.chol.data.shape().1.sub(Const::<1>)
             )

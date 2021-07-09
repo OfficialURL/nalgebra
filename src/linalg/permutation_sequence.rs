@@ -72,7 +72,7 @@ where
         unsafe {
             Self {
                 len: 0,
-                ipiv: crate::unimplemented_or_uninitialized_generic!(dim, Const::<1>),
+                ipiv:  Matrix::new_uninitialized_generic(dim, Const::<1>),
             }
         }
     }

@@ -10,7 +10,7 @@ use std::cmp;
 use crate::allocator::Allocator;
 use crate::base::dimension::{Const, Dim, DimDiff, DimSub, Dynamic, U1, U2};
 use crate::base::storage::Storage;
-use crate::base::{DefaultAllocator, OMatrix, OVector, SquareMatrix, Unit, Vector2, Vector3};
+use crate::base::{DefaultAllocator, OMatrix, OVector, SquareMatrix, Unit, Vector2, Vector3,Matrix};
 
 use crate::geometry::Reflection;
 use crate::linalg::givens::GivensRotation;
@@ -73,7 +73,7 @@ where
     /// continues indefinitely until convergence.
     pub fn try_new(m: OMatrix<T, D, D>, eps: T::RealField, max_niter: usize) -> Option<Self> {
         let mut work =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(m.data.shape().0, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(m.data.shape().0, Const::<1>) };
 
         Self::do_decompose(m, &mut work, eps, max_niter, true)
             .map(|(q, t)| Schur { q: q.unwrap(), t })
@@ -389,7 +389,7 @@ where
     #[must_use]
     pub fn eigenvalues(&self) -> Option<OVector<T, D>> {
         let mut out = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(self.t.data.shape().0, Const::<1>)
+             Matrix::new_uninitialized_generic(self.t.data.shape().0, Const::<1>)
         };
         if Self::do_eigenvalues(&self.t, &mut out) {
             Some(out)
@@ -406,7 +406,7 @@ where
         DefaultAllocator: Allocator<NumComplex<T>, D>,
     {
         let mut out = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(self.t.data.shape().0, Const::<1>)
+             Matrix::new_uninitialized_generic(self.t.data.shape().0, Const::<1>)
         };
         Self::do_complex_eigenvalues(&self.t, &mut out);
         out
@@ -520,7 +520,7 @@ where
         );
 
         let mut work = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(self.data.shape().0, Const::<1>)
+             Matrix::new_uninitialized_generic(self.data.shape().0, Const::<1>)
         };
 
         // Special case for 2x2 matrices.
@@ -563,7 +563,7 @@ where
         DefaultAllocator: Allocator<NumComplex<T>, D>,
     {
         let dim = self.data.shape().0;
-        let mut work = unsafe { crate::unimplemented_or_uninitialized_generic!(dim, Const::<1>) };
+        let mut work = unsafe {  Matrix::new_uninitialized_generic(dim, Const::<1>) };
 
         let schur = Schur::do_decompose(
             self.clone_owned(),
@@ -573,7 +573,7 @@ where
             false,
         )
         .unwrap();
-        let mut eig = unsafe { crate::unimplemented_or_uninitialized_generic!(dim, Const::<1>) };
+        let mut eig = unsafe {  Matrix::new_uninitialized_generic(dim, Const::<1>) };
         Schur::do_complex_eigenvalues(&schur.1, &mut eig);
         eig
     }

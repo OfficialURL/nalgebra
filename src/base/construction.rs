@@ -22,26 +22,10 @@ use simba::scalar::{ClosedAdd, ClosedMul};
 use crate::base::allocator::Allocator;
 use crate::base::dimension::{Dim, DimName, Dynamic, ToTypenum};
 use crate::base::storage::Storage;
+use crate::base::storage::Uninit;
 use crate::base::{
     ArrayStorage, Const, DefaultAllocator, Matrix, OMatrix, OVector, Scalar, Unit, Vector,
 };
-
-/// When "no_unsound_assume_init" is enabled, expands to `unimplemented!()` instead of `new_uninitialized_generic().assume_init()`.
-/// Intended as a placeholder, each callsite should be refactored to use uninitialized memory soundly
-#[macro_export]
-macro_rules! unimplemented_or_uninitialized_generic {
-    ($nrows:expr, $ncols:expr) => {{
-        #[cfg(feature="no_unsound_assume_init")] {
-            // Some of the call sites need the number of rows and columns from this to infer a type, so
-            // uninitialized memory is used to infer the type, as `T: Zero` isn't available at all callsites.
-            // This may technically still be UB even though the assume_init is dead code, but all callsites should be fixed before #556 is closed.
-            let typeinference_helper = crate::base::Matrix::new_uninitialized_generic($nrows, $ncols);
-            unimplemented!();
-            typeinference_helper.assume_init()
-        }
-        #[cfg(not(feature="no_unsound_assume_init"))] { crate::base::Matrix::new_uninitialized_generic($nrows, $ncols).assume_init() }
-    }}
-}
 
 /// # Generic constructors
 /// This set of matrix and vector construction functions are all generic
@@ -49,9 +33,9 @@ macro_rules! unimplemented_or_uninitialized_generic {
 /// the dimension as inputs.
 ///
 /// These functions should only be used when working on dimension-generic code.
-impl<T: Scalar, R: Dim, C: Dim> OMatrix<T, R, C>
+impl<T, R: Dim, C: Dim> OMatrix<T, R, C>
 where
-    DefaultAllocator: Allocator<T, R, C>
+    DefaultAllocator: Allocator<T, R, C>,
 {
     /// Creates a new uninitialized matrix.
     ///
@@ -59,13 +43,21 @@ where
     /// If the matrix has a compile-time dimension, this panics
     /// if `nrows != R::to_usize()` or `ncols != C::to_usize()`.
     #[inline]
-    pub unsafe fn new_uninitialized_generic(nrows: R, ncols: C) -> OMatrix<mem::MaybeUninit<T>, R, C> {
-        OMatrix::from_data(DefaultAllocator::allocate_uninitialized(nrows, ncols))
+    pub fn new_uninitialized_generic(nrows: R, ncols: C) -> OMatrix<mem::MaybeUninit<T>, R, C>
+    {
+        OMatrix::<mem::MaybeUninit<T>, R, C>::from_iterator_generic(
+            nrows,
+            ncols,
+            iter::repeat_with(mem::MaybeUninit::uninit),
+        )
     }
 
     /// Creates a matrix with all its elements set to `elem`.
     #[inline]
-    pub fn from_element_generic(nrows: R, ncols: C, elem: T) -> Self {
+    pub fn from_element_generic(nrows: R, ncols: C, elem: T) -> Self
+    where
+        T: Clone,
+    {
         let len = nrows.value() * ncols.value();
         Self::from_iterator_generic(nrows, ncols, iter::repeat(elem).take(len))
     }
@@ -74,7 +66,10 @@ where
     ///
     /// Same as `from_element_generic`.
     #[inline]
-    pub fn repeat_generic(nrows: R, ncols: C, elem: T) -> Self {
+    pub fn repeat_generic(nrows: R, ncols: C, elem: T) -> Self
+    where
+        T: Clone,
+    {
         let len = nrows.value() * ncols.value();
         Self::from_iterator_generic(nrows, ncols, iter::repeat(elem).take(len))
     }
@@ -83,7 +78,7 @@ where
     #[inline]
     pub fn zeros_generic(nrows: R, ncols: C) -> Self
     where
-        T: Zero,
+        T: Zero + Clone,
     {
         Self::from_element_generic(nrows, ncols, T::zero())
     }
@@ -103,28 +98,40 @@ where
     /// The order of elements in the slice must follow the usual mathematic writing, i.e.,
     /// row-by-row.
     #[inline]
-    pub fn from_row_slice_generic(nrows: R, ncols: C, slice: &[T]) -> Self {
+    pub fn from_row_slice_generic(nrows: R, ncols: C, slice: &[T]) -> Self
+    where
+        T: Clone,
+        OMatrix<mem::MaybeUninit<T>, R, C>: Uninit<Init = Self>,
+    {
         assert!(
             slice.len() == nrows.value() * ncols.value(),
             "Matrix init. error: the slice did not contain the right number of elements."
         );
 
-        let mut res = unsafe { crate::unimplemented_or_uninitialized_generic!(nrows, ncols) };
+        let mut res = Self::new_uninitialized_generic(nrows, ncols);
         let mut iter = slice.iter();
 
         for i in 0..nrows.value() {
             for j in 0..ncols.value() {
-                unsafe { *res.get_unchecked_mut((i, j)) = iter.next().unwrap().inlined_clone() }
+                // Safety: all indices are in range.
+                unsafe {
+                    *res.get_unchecked_mut((i, j)) =
+                        mem::MaybeUninit::new(iter.next().unwrap().clone())
+                }
             }
         }
 
-        res
+        // Safety: all elements have been set.
+        unsafe { res.assume_init() }
     }
 
     /// Creates a matrix with its elements filled with the components provided by a slice. The
     /// components must have the same layout as the matrix data storage (i.e. column-major).
     #[inline]
-    pub fn from_column_slice_generic(nrows: R, ncols: C, slice: &[T]) -> Self {
+    pub fn from_column_slice_generic(nrows: R, ncols: C, slice: &[T]) -> Self
+    where
+        T: Clone,
+    {
         Self::from_iterator_generic(nrows, ncols, slice.iter().cloned())
     }
 
@@ -134,16 +141,19 @@ where
     pub fn from_fn_generic<F>(nrows: R, ncols: C, mut f: F) -> Self
     where
         F: FnMut(usize, usize) -> T,
+        OMatrix<mem::MaybeUninit<T>, R, C>: Uninit<Init = Self>,
     {
-        let mut res: Self = unsafe { crate::unimplemented_or_uninitialized_generic!(nrows, ncols) };
+        let mut res = Self::new_uninitialized_generic(nrows, ncols);
 
         for j in 0..ncols.value() {
             for i in 0..nrows.value() {
-                unsafe { *res.get_unchecked_mut((i, j)) = f(i, j) }
+                // Safety: all indices are in range.
+                unsafe { *res.get_unchecked_mut((i, j)) = mem::MaybeUninit::new(f(i, j)) }
             }
         }
 
-        res
+        // Safety: all elements have been set.
+        unsafe { res.assume_init() }
     }
 
     /// Creates a new identity matrix.
@@ -153,7 +163,7 @@ where
     #[inline]
     pub fn identity_generic(nrows: R, ncols: C) -> Self
     where
-        T: Zero + One,
+        T: Zero + One + Clone,
     {
         Self::from_diagonal_element_generic(nrows, ncols, T::one())
     }
@@ -165,11 +175,12 @@ where
     #[inline]
     pub fn from_diagonal_element_generic(nrows: R, ncols: C, elt: T) -> Self
     where
-        T: Zero + One,
+        T: Zero + One + Clone,
     {
         let mut res = Self::zeros_generic(nrows, ncols);
 
         for i in 0..crate::min(nrows.value(), ncols.value()) {
+            // Safety: all indices are in range.
             unsafe { *res.get_unchecked_mut((i, i)) = elt.inlined_clone() }
         }
 
@@ -183,7 +194,7 @@ where
     #[inline]
     pub fn from_partial_diagonal_generic(nrows: R, ncols: C, elts: &[T]) -> Self
     where
-        T: Zero,
+        T: Zero + Clone,
     {
         let mut res = Self::zeros_generic(nrows, ncols);
         assert!(
@@ -192,6 +203,7 @@ where
         );
 
         for (i, elt) in elts.iter().enumerate() {
+            // Safety: all indices are in range.
             unsafe { *res.get_unchecked_mut((i, i)) = elt.inlined_clone() }
         }
 
@@ -331,7 +343,6 @@ where
 
 impl<T, D: Dim> OMatrix<T, D, D>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, D, D>,
 {
     /// Creates a square matrix with its diagonal set to `diag` and all other entries set to 0.
@@ -404,7 +415,10 @@ macro_rules! impl_constructors(
         ///         dm[(1, 0)] == 2.0 && dm[(1, 1)] == 2.0 && dm[(1, 2)] == 2.0);
         /// ```
         #[inline]
-        pub fn from_element($($args: usize,)* elem: T) -> Self {
+        pub fn from_element($($args: usize,)* elem: T) -> Self 
+        where
+            T: Clone,
+        {
             Self::from_element_generic($($gargs, )* elem)
         }
 
@@ -614,7 +628,7 @@ macro_rules! impl_constructors(
 );
 
 /// # Constructors of statically-sized vectors or statically-sized matrices
-impl<T: Scalar, R: DimName, C: DimName> OMatrix<T, R, C>
+impl<T, R: DimName, C: DimName> OMatrix<T, R, C>
 where
     DefaultAllocator: Allocator<T, R, C>,
 {
@@ -626,7 +640,7 @@ where
 }
 
 /// # Constructors of matrices with a dynamic number of columns
-impl<T: Scalar, R: DimName> OMatrix<T, R, Dynamic>
+impl<T, R: DimName> OMatrix<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic>,
 {
@@ -637,7 +651,7 @@ where
 }
 
 /// # Constructors of dynamic vectors and matrices with a dynamic number of rows
-impl<T: Scalar, C: DimName> OMatrix<T, Dynamic, C>
+impl<T, C: DimName> OMatrix<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C>,
 {
@@ -648,7 +662,7 @@ where
 }
 
 /// # Constructors of fully dynamic matrices
-impl<T: Scalar> OMatrix<T, Dynamic, Dynamic>
+impl<T> OMatrix<T, Dynamic, Dynamic>
 where
     DefaultAllocator: Allocator<T, Dynamic, Dynamic>,
 {
@@ -666,7 +680,7 @@ where
  */
 macro_rules! impl_constructors_from_data(
     ($data: ident; $($Dims: ty),*; $(=> $DimIdent: ident: $DimBound: ident),*; $($gargs: expr),*; $($args: ident),*) => {
-        impl<T: Scalar, $($DimIdent: $DimBound, )*> OMatrix<T $(, $Dims)*>
+        impl<T, $($DimIdent: $DimBound, )*> OMatrix<T $(, $Dims)*>
         where DefaultAllocator: Allocator<T $(, $Dims)*> {
             /// Creates a matrix with its elements filled with the components provided by a slice
             /// in row-major order.
@@ -824,7 +838,7 @@ where
 }
 
 #[cfg(feature = "rand-no-std")]
-impl<T: Scalar, R: Dim, C: Dim> Distribution<OMatrix<T, R, C>> for Standard
+impl<T, R: Dim, C: Dim> Distribution<OMatrix<T, R, C>> for Standard
 where
     DefaultAllocator: Allocator<T, R, C>,
     Standard: Distribution<T>,
@@ -843,7 +857,7 @@ impl<T, R, C> Arbitrary for OMatrix<T, R, C>
 where
     R: Dim,
     C: Dim,
-    T: Scalar + Arbitrary + Send,
+    T: Arbitrary + Send,
     DefaultAllocator: Allocator<T, R, C>,
     Owned<T, R, C>: Clone + Send,
 {
@@ -1080,7 +1094,7 @@ componentwise_constructors_impl!(
 impl<T, R: DimName> OVector<T, R>
 where
     R: ToTypenum,
-    T: Scalar + Zero + One,
+    T: Zero + One,
     DefaultAllocator: Allocator<T, R>,
 {
     /// The column vector with `val` as its i-th component.

@@ -306,9 +306,9 @@ macro_rules! impl_spmm_cs_dense {
             // TODO: Is it possible to simplify these bounds?
             ShapeConstraint:
                 // Bounds so that we can turn OMatrix<T, Dynamic, C> into a DMatrixSliceMut
-                  DimEq<U1, <<DefaultAllocator as Allocator<T, Dynamic, C>>::Buffer as Storage<T, Dynamic, C>>::RStride>
+                  DimEq<U1, <<DefaultAllocator as BaseAllocator<T, Dynamic, C>>::Buffer as Storage<T, Dynamic, C>>::RStride>
                 + DimEq<C, Dynamic>
-                + DimEq<Dynamic, <<DefaultAllocator as Allocator<T, Dynamic, C>>::Buffer as Storage<T, Dynamic, C>>::CStride>
+                + DimEq<Dynamic, <<DefaultAllocator as BaseAllocator<T, Dynamic, C>>::Buffer as Storage<T, Dynamic, C>>::CStride>
                 // Bounds so that we can turn &Matrix<T, R, C, S> into a DMatrixSlice
                 + DimEq<U1, S::RStride>
                 + DimEq<R, Dynamic>

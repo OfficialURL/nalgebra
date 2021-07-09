@@ -4,14 +4,17 @@ use std::io::{Result as IOResult, Write};
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::vec::Vec;
 
-use crate::base::allocator::Allocator;
+use std::mem;
+
+use crate::base::allocator::{Allocator, BaseAllocator};
 use crate::base::constraint::{SameNumberOfRows, ShapeConstraint};
 use crate::base::default_allocator::DefaultAllocator;
 use crate::base::dimension::{Dim, DimName, Dynamic, U1};
 use crate::base::storage::{
-    ContiguousStorage, ContiguousStorageMut, Owned, ReshapableStorage, Storage, StorageMut,
+    ContiguousStorage, ContiguousStorageMut, Owned, ReshapableStorage, Storage, StorageMut, Uninit,
 };
-use crate::base::{Scalar, Vector};
+use crate::base::Vector;
+use crate::Scalar;
 
 #[cfg(feature = "serde-serialize-no-std")]
 use serde::{
@@ -115,6 +118,7 @@ impl<T, R: Dim, C: Dim> VecStorage<T, R, C> {
     /// # Safety
     /// If `sz` is larger than the current size, additional elements are uninitialized.
     /// If `sz` is smaller than the current size, additional elements are truncated.
+    /// ***DANGER*** THIS CAUSES UB!!!!
     #[inline]
     pub unsafe fn resize(mut self, sz: usize) -> Vec<T> {
         let len = self.len();
@@ -151,15 +155,28 @@ impl<T, R: Dim, C: Dim> From<VecStorage<T, R, C>> for Vec<T> {
     }
 }
 
+unsafe impl<T, R: Dim, C: Dim> Uninit for VecStorage<mem::MaybeUninit<T>, R, C> {
+    type Init = VecStorage<T, R, C>;
+
+    unsafe fn assume_init(self) -> Self::Init {
+        VecStorage {
+            // ***DANGER*** THESE LAYOUTS MAY NOT BE THE SAME
+            data: mem::transmute(self.data),
+            nrows: self.nrows,
+            ncols: self.ncols,
+        }
+    }
+}
+
 /*
  *
  * Dynamic − Static
  * Dynamic − Dynamic
  *
  */
-unsafe impl<T: Scalar, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
-    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>,
 {
     type RStride = U1;
     type CStride = Dynamic;
@@ -180,7 +197,7 @@ where
     }
 
     #[inline]
-    unsafe fn is_contiguous(&self) -> bool {
+    fn is_contiguous(&self) -> bool {
         true
     }
 
@@ -196,6 +213,7 @@ where
     fn clone_owned(&self) -> Owned<T, Dynamic, C>
     where
         DefaultAllocator: Allocator<T, Dynamic, C>,
+        Self: Clone,
     {
         self.clone()
     }
@@ -206,9 +224,9 @@ where
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
-    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>,
 {
     type RStride = U1;
     type CStride = R;
@@ -229,7 +247,7 @@ where
     }
 
     #[inline]
-    unsafe fn is_contiguous(&self) -> bool {
+    fn is_contiguous(&self) -> bool {
         true
     }
 
@@ -245,6 +263,7 @@ where
     fn clone_owned(&self) -> Owned<T, R, Dynamic>
     where
         DefaultAllocator: Allocator<T, R, Dynamic>,
+        Self: Clone,
     {
         self.clone()
     }
@@ -260,9 +279,9 @@ where
  * StorageMut, ContiguousStorage.
  *
  */
-unsafe impl<T: Scalar, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
-    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>,
 {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
@@ -275,19 +294,18 @@ where
     }
 }
 
-unsafe impl<T: Scalar, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
-    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
+unsafe impl<T, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
-unsafe impl<T: Scalar, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
-    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
+unsafe impl<T, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
 impl<T, C1, C2> ReshapableStorage<T, Dynamic, C1, Dynamic, C2> for VecStorage<T, Dynamic, C1>
 where
-    T: Scalar,
     C1: Dim,
     C2: Dim,
 {
@@ -305,7 +323,6 @@ where
 
 impl<T, C1, R2> ReshapableStorage<T, Dynamic, C1, R2, Dynamic> for VecStorage<T, Dynamic, C1>
 where
-    T: Scalar,
     C1: Dim,
     R2: DimName,
 {
@@ -321,9 +338,9 @@ where
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
-    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
+    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>,
 {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
@@ -338,7 +355,6 @@ where
 
 impl<T, R1, C2> ReshapableStorage<T, R1, Dynamic, Dynamic, C2> for VecStorage<T, R1, Dynamic>
 where
-    T: Scalar,
     R1: DimName,
     C2: Dim,
 {
@@ -356,7 +372,6 @@ where
 
 impl<T, R1, R2> ReshapableStorage<T, R1, Dynamic, R2, Dynamic> for VecStorage<T, R1, Dynamic>
 where
-    T: Scalar,
     R1: DimName,
     R2: DimName,
 {
@@ -387,13 +402,13 @@ impl<T: Abomonation, R: Dim, C: Dim> Abomonation for VecStorage<T, R, C> {
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
-    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
+unsafe impl<T, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>
 {
 }
 
-unsafe impl<T: Scalar, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
-    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
+unsafe impl<T, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>
 {
 }
 
@@ -426,12 +441,9 @@ impl<'a, T: 'a + Copy, R: Dim> Extend<&'a T> for VecStorage<T, R, Dynamic> {
     }
 }
 
-impl<T, R, RV, SV> Extend<Vector<T, RV, SV>> for VecStorage<T, R, Dynamic>
+impl<T: Scalar, R: Dim, RV: Dim, SV: Storage<T, RV>> Extend<Vector<T, RV, SV>>
+    for VecStorage<T, R, Dynamic>
 where
-    T: Scalar,
-    R: Dim,
-    RV: Dim,
-    SV: Storage<T, RV>,
     ShapeConstraint: SameNumberOfRows<R, RV>,
 {
     /// Extends the number of columns of the `VecStorage` with vectors

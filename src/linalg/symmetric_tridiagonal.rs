@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::allocator::Allocator;
 use crate::base::{DefaultAllocator, OMatrix, OVector};
 use crate::dimension::{Const, DimDiff, DimSub, U1};
-use crate::storage::Storage;
+use crate::storage::Storage;use crate::base::Matrix;
 use simba::scalar::ComplexField;
 
 use crate::linalg::householder;
@@ -62,10 +62,10 @@ where
         );
 
         let mut off_diagonal = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(dim.sub(Const::<1>), Const::<1>)
+             Matrix::new_uninitialized_generic(dim.sub(Const::<1>), Const::<1>)
         };
         let mut p = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(dim.sub(Const::<1>), Const::<1>)
+             Matrix::new_uninitialized_generic(dim.sub(Const::<1>), Const::<1>)
         };
 
         for i in 0..dim.value() - 1 {

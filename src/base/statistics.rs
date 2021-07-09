@@ -19,7 +19,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     {
         let ncols = self.data.shape().1;
         let mut res: RowOVector<T, C> =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(Const::<1>, ncols) };
+            unsafe {  Matrix::new_uninitialized_generic(Const::<1>, ncols) };
 
         for i in 0..ncols.value() {
             // TODO: avoid bound checking of column.
@@ -46,7 +46,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     {
         let ncols = self.data.shape().1;
         let mut res: OVector<T, C> =
-            unsafe { crate::unimplemented_or_uninitialized_generic!(ncols, Const::<1>) };
+            unsafe {  Matrix::new_uninitialized_generic(ncols, Const::<1>) };
 
         for i in 0..ncols.value() {
             // TODO: avoid bound checking of column.

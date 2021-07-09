@@ -14,10 +14,10 @@ use abomonation::Abomonation;
 
 use simba::simd::SimdPartialOrd;
 
-use crate::base::allocator::Allocator;
+use crate::base::allocator::{Allocator, BaseAllocator};
 use crate::base::dimension::{DimName, DimNameAdd, DimNameSum, U1};
 use crate::base::iter::{MatrixIter, MatrixIterMut};
-use crate::base::{Const, DefaultAllocator, OVector, SVector, Scalar};
+use crate::base::{Const, DefaultAllocator, Matrix, OVector, SVector, Scalar};
 
 /// A point in an euclidean space.
 ///
@@ -170,9 +170,9 @@ impl<T: Scalar, const D: usize> Point<T, D> {
         DefaultAllocator: Allocator<T, DimNameSum<Const<D>, U1>>,
     {
         let mut res = unsafe {
-            crate::unimplemented_or_uninitialized_generic!(
+            Matrix::new_uninitialized_generic(
                 <DimNameSum<Const<D>, U1> as DimName>::name(),
-                Const::<1>
+                Const::<1>,
             )
         };
         res.fixed_slice_mut::<D, 1>(0, 0).copy_from(&self.coords);
@@ -243,7 +243,7 @@ impl<T: Scalar, const D: usize> Point<T, D> {
     #[inline]
     pub fn iter(
         &self,
-    ) -> MatrixIter<T, Const<D>, Const<1>, <DefaultAllocator as Allocator<T, Const<D>>>::Buffer>
+    ) -> MatrixIter<T, Const<D>, Const<1>, <DefaultAllocator as BaseAllocator<T, Const<D>>>::Buffer>
     {
         self.coords.iter()
     }
@@ -270,8 +270,12 @@ impl<T: Scalar, const D: usize> Point<T, D> {
     #[inline]
     pub fn iter_mut(
         &mut self,
-    ) -> MatrixIterMut<T, Const<D>, Const<1>, <DefaultAllocator as Allocator<T, Const<D>>>::Buffer>
-    {
+    ) -> MatrixIterMut<
+        T,
+        Const<D>,
+        Const<1>,
+        <DefaultAllocator as BaseAllocator<T, Const<D>>>::Buffer,
+    > {
         self.coords.iter_mut()
     }
 

@@ -1,3 +1,5 @@
+use std::mem;
+
 #[cfg(feature = "arbitrary")]
 use quickcheck::{Arbitrary, Gen};
 
@@ -12,8 +14,8 @@ use crate::base::allocator::Allocator;
 use crate::base::dimension::{DimNameAdd, DimNameSum, U1};
 use crate::base::{DefaultAllocator, SVector, Scalar};
 use crate::{
-    Const, OVector, Point1, Point2, Point3, Point4, Point5, Point6, Vector1, Vector2, Vector3,
-    Vector4, Vector5, Vector6,
+    Const, Matrix, OVector, Point1, Point2, Point3, Point4, Point5, Point6, Vector1, Vector2,
+    Vector3, Vector4, Vector5, Vector6,
 };
 use simba::scalar::{ClosedDiv, SupersetOf};
 
@@ -23,10 +25,8 @@ use crate::geometry::Point;
 impl<T: Scalar, const D: usize> Point<T, D> {
     /// Creates a new point with uninitialized coordinates.
     #[inline]
-    pub unsafe fn new_uninitialized() -> Self {
-        Self::from(crate::unimplemented_or_uninitialized_generic!(
-            Const::<D>, Const::<1>
-        ))
+    pub unsafe fn new_uninitialized() -> Point<mem::MaybeUninit<T>, D> {
+        Self::from(Matrix::new_uninitialized_generic(Const::<D>, Const::<1>))
     }
 
     /// Creates a new point with all coordinates equal to zero.
@@ -165,7 +165,7 @@ where
 #[cfg(feature = "arbitrary")]
 impl<T: Scalar + Arbitrary + Send, const D: usize> Arbitrary for Point<T, D>
 where
-    <DefaultAllocator as Allocator<T, Const<D>>>::Buffer: Send,
+    <DefaultAllocator as crate::base::allocator::BaseAllocator<T, Const<D>>>::Buffer: Send,
 {
     #[inline]
     fn arbitrary(g: &mut Gen) -> Self {
