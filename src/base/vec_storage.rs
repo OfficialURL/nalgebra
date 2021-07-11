@@ -11,7 +11,7 @@ use crate::base::dimension::{Dim, DimName, Dynamic, U1};
 use crate::base::storage::{
     ContiguousStorage, ContiguousStorageMut, Owned, ReshapableStorage, Storage, StorageMut,
 };
-use crate::base::{Scalar, Vector};
+use crate::base::Vector;
 
 #[cfg(feature = "serde-serialize-no-std")]
 use serde::{
@@ -157,7 +157,7 @@ impl<T, R: Dim, C: Dim> From<VecStorage<T, R, C>> for Vec<T> {
  * Dynamic − Dynamic
  *
  */
-unsafe impl<T: Scalar, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
@@ -195,6 +195,7 @@ where
     #[inline]
     fn clone_owned(&self) -> Owned<T, Dynamic, C>
     where
+        T: Clone,
         DefaultAllocator: Allocator<T, Dynamic, C>,
     {
         self.clone()
@@ -206,7 +207,7 @@ where
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
@@ -244,6 +245,7 @@ where
     #[inline]
     fn clone_owned(&self) -> Owned<T, R, Dynamic>
     where
+        T: Clone,
         DefaultAllocator: Allocator<T, R, Dynamic>,
     {
         self.clone()
@@ -260,7 +262,7 @@ where
  * StorageMut, ContiguousStorage.
  *
  */
-unsafe impl<T: Scalar, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
@@ -275,19 +277,18 @@ where
     }
 }
 
-unsafe impl<T: Scalar, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+unsafe impl<T, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
-unsafe impl<T: Scalar, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+unsafe impl<T, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
 impl<T, C1, C2> ReshapableStorage<T, Dynamic, C1, Dynamic, C2> for VecStorage<T, Dynamic, C1>
 where
-    T: Scalar,
     C1: Dim,
     C2: Dim,
 {
@@ -305,7 +306,6 @@ where
 
 impl<T, C1, R2> ReshapableStorage<T, Dynamic, C1, R2, Dynamic> for VecStorage<T, Dynamic, C1>
 where
-    T: Scalar,
     C1: Dim,
     R2: DimName,
 {
@@ -321,7 +321,7 @@ where
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
@@ -338,7 +338,6 @@ where
 
 impl<T, R1, C2> ReshapableStorage<T, R1, Dynamic, Dynamic, C2> for VecStorage<T, R1, Dynamic>
 where
-    T: Scalar,
     R1: DimName,
     C2: Dim,
 {
@@ -356,7 +355,6 @@ where
 
 impl<T, R1, R2> ReshapableStorage<T, R1, Dynamic, R2, Dynamic> for VecStorage<T, R1, Dynamic>
 where
-    T: Scalar,
     R1: DimName,
     R2: DimName,
 {
@@ -387,12 +385,12 @@ impl<T: Abomonation, R: Dim, C: Dim> Abomonation for VecStorage<T, R, C> {
     }
 }
 
-unsafe impl<T: Scalar, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+unsafe impl<T, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
 
-unsafe impl<T: Scalar, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+unsafe impl<T, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
@@ -428,7 +426,7 @@ impl<'a, T: 'a + Copy, R: Dim> Extend<&'a T> for VecStorage<T, R, Dynamic> {
 
 impl<T, R, RV, SV> Extend<Vector<T, RV, SV>> for VecStorage<T, R, Dynamic>
 where
-    T: Scalar,
+    T: Clone,
     R: Dim,
     RV: Dim,
     SV: Storage<T, RV>,

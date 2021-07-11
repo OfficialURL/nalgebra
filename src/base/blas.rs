@@ -1,8 +1,9 @@
-use crate::SimdComplexField;
+use crate::{InlinedClone, SimdComplexField};
 #[cfg(feature = "std")]
 use matrixmultiply;
 use num::{One, Zero};
 use simba::scalar::{ClosedAdd, ClosedMul};
+use std::any::{ TypeId};
 #[cfg(feature = "std")]
 use std::mem;
 
@@ -19,7 +20,7 @@ use crate::base::{
 /// # Dot/scalar product
 impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S>
 where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
+    T: InlinedClone + Zero + ClosedAdd + ClosedMul,
 {
     #[inline(always)]
     fn dotx<R2: Dim, C2: Dim, SB>(
@@ -279,7 +280,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn array_axcpy<T>(
+fn array_axcpy<T: InlinedClone + Zero + ClosedAdd + ClosedMul>(
     y: &mut [T],
     a: T,
     x: &[T],
@@ -288,9 +289,7 @@ fn array_axcpy<T>(
     stride1: usize,
     stride2: usize,
     len: usize,
-) where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
-{
+) {
     for i in 0..len {
         unsafe {
             let y = y.get_unchecked_mut(i * stride1);
@@ -302,10 +301,15 @@ fn array_axcpy<T>(
     }
 }
 
-fn array_axc<T>(y: &mut [T], a: T, x: &[T], c: T, stride1: usize, stride2: usize, len: usize)
-where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
-{
+fn array_axc<T: InlinedClone + Zero + ClosedAdd + ClosedMul>(
+    y: &mut [T],
+    a: T,
+    x: &[T],
+    c: T,
+    stride1: usize,
+    stride2: usize,
+    len: usize,
+) {
     for i in 0..len {
         unsafe {
             *y.get_unchecked_mut(i * stride1) = a.inlined_clone()
@@ -318,7 +322,7 @@ where
 /// # BLAS functions
 impl<T, D: Dim, S> Vector<T, D, S>
 where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
+    T: Zero + ClosedAdd + ClosedMul,
     S: StorageMut<T, D>,
 {
     /// Computes `self = a * x * c + b * self`.
@@ -338,6 +342,7 @@ where
     #[allow(clippy::many_single_char_names)]
     pub fn axcpy<D2: Dim, SB>(&mut self, a: T, x: &Vector<T, D2, SB>, c: T, b: T)
     where
+        T: InlinedClone,
         SB: Storage<T, D2>,
         ShapeConstraint: DimEq<D, D2>,
     {
@@ -376,7 +381,7 @@ where
     #[inline]
     pub fn axpy<D2: Dim, SB>(&mut self, a: T, x: &Vector<T, D2, SB>, b: T)
     where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         ShapeConstraint: DimEq<D, D2>,
     {
@@ -408,7 +413,7 @@ where
         x: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, R2, C2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, R2> + AreMultipliable<R2, C2, D3, U1>,
@@ -459,7 +464,7 @@ where
             &DVectorSlice<T, SC::RStride, SC::CStride>,
         ) -> T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, D2> + AreMultipliable<D2, D2, D3, U1>,
@@ -515,7 +520,7 @@ where
         x: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, D2> + AreMultipliable<D2, D2, D3, U1>,
@@ -559,7 +564,7 @@ where
         x: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, D2> + AreMultipliable<D2, D2, D3, U1>,
@@ -621,7 +626,7 @@ where
         beta: T,
         dot: impl Fn(&VectorSlice<T, R2, SB::RStride, SB::CStride>, &Vector<T, D3, SC>) -> T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, R2, C2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, C2> + AreMultipliable<C2, R2, D3, U1>,
@@ -679,7 +684,7 @@ where
         x: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, R2, C2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<D, C2> + AreMultipliable<C2, R2, D3, U1>,
@@ -725,7 +730,7 @@ where
 
 impl<T, R1: Dim, C1: Dim, S: StorageMut<T, R1, C1>> Matrix<T, R1, C1, S>
 where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
+    T: Zero + ClosedAdd + ClosedMul,
 {
     #[inline(always)]
     fn gerx<D2: Dim, D3: Dim, SB, SC>(
@@ -736,7 +741,7 @@ where
         beta: T,
         conjugate: impl Fn(T) -> T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<R1, D2> + DimEq<C1, D3>,
@@ -782,7 +787,7 @@ where
         y: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<R1, D2> + DimEq<C1, D3>,
@@ -852,7 +857,7 @@ where
         b: &Matrix<T, R3, C3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone + 'static,
         SB: Storage<T, R2, C2>,
         SC: Storage<T, R3, C3>,
         ShapeConstraint: SameNumberOfRows<R1, R2>
@@ -913,7 +918,7 @@ where
                         return;
                     }
 
-                    if T::is::<f32>() {
+                    if TypeId::of::<T>() == TypeId::of::<f32>() {
                         let (rsa, csa) = a.strides();
                         let (rsb, csb) = b.strides();
                         let (rsc, csc) = self.strides();
@@ -937,7 +942,7 @@ where
                             );
                         }
                         return;
-                    } else if T::is::<f64>() {
+                    } else if TypeId::of::<T>() == TypeId::of::<f64>() {
                         let (rsa, csa) = a.strides();
                         let (rsb, csb) = b.strides();
                         let (rsc, csc) = self.strides();
@@ -966,6 +971,7 @@ where
             }
         }
 
+        // Fallback implementation.
         for j1 in 0..ncols1 {
             // TODO: avoid bound checks.
             self.column_mut(j1).gemv(
@@ -1007,7 +1013,7 @@ where
         b: &Matrix<T, R3, C3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, R2, C2>,
         SC: Storage<T, R3, C3>,
         ShapeConstraint: SameNumberOfRows<R1, C2>
@@ -1110,7 +1116,7 @@ where
         beta: T,
         conjugate: impl Fn(T) -> T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<R1, D2> + DimEq<C1, D3>,
@@ -1165,7 +1171,7 @@ where
         y: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<R1, D2> + DimEq<C1, D3>,
@@ -1201,7 +1207,7 @@ where
         y: &Vector<T, D3, SC>,
         beta: T,
     ) where
-        T: One,
+        T: One + InlinedClone,
         SB: Storage<T, D2>,
         SC: Storage<T, D3>,
         ShapeConstraint: DimEq<R1, D2> + DimEq<C1, D3>,
@@ -1283,6 +1289,7 @@ where
         mid: &SquareMatrix<T, D4, S4>,
         beta: T,
     ) where
+        T: InlinedClone,
         D2: Dim,
         R3: Dim,
         C3: Dim,
@@ -1329,6 +1336,7 @@ where
         mid: &SquareMatrix<T, D4, S4>,
         beta: T,
     ) where
+        T: InlinedClone,
         R3: Dim,
         C3: Dim,
         D4: Dim,
@@ -1376,6 +1384,7 @@ where
         rhs: &Matrix<T, R4, C4, S4>,
         beta: T,
     ) where
+        T: InlinedClone,
         D2: Dim,
         D3: Dim,
         R4: Dim,
@@ -1424,6 +1433,7 @@ where
         rhs: &Matrix<T, R3, C3, S3>,
         beta: T,
     ) where
+        T: InlinedClone,
         D2: Dim,
         R3: Dim,
         C3: Dim,

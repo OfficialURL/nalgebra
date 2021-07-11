@@ -13,14 +13,16 @@ use crate::base::dimension::Dynamic;
 use crate::base::dimension::{Const, Dim, DimAdd, DimDiff, DimMin, DimMinimum, DimSub, DimSum, U1};
 use crate::base::storage::{ContiguousStorageMut, ReshapableStorage, Storage, StorageMut};
 use crate::base::{DefaultAllocator, Matrix, OMatrix, RowVector, Scalar, Vector};
+use crate::InlinedClone;
 
 /// # Rows and columns extraction
-impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     /// Extracts the upper triangular part of this matrix (including the diagonal).
     #[inline]
     #[must_use]
     pub fn upper_triangle(&self) -> OMatrix<T, R, C>
     where
+        T: Zero + InlinedClone,
         DefaultAllocator: Allocator<T, R, C>,
     {
         let mut res = self.clone_owned();
@@ -34,6 +36,7 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[must_use]
     pub fn lower_triangle(&self) -> OMatrix<T, R, C>
     where
+        T: Zero + InlinedClone,
         DefaultAllocator: Allocator<T, R, C>,
     {
         let mut res = self.clone_owned();
@@ -47,6 +50,7 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[must_use]
     pub fn select_rows<'a, I>(&self, irows: I) -> OMatrix<T, Dynamic, C>
     where
+        T: InlinedClone,
         I: IntoIterator<Item = &'a usize>,
         I::IntoIter: ExactSizeIterator + Clone,
         DefaultAllocator: Allocator<T, Dynamic, C>,
@@ -83,7 +87,7 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     #[must_use]
     pub fn select_columns<'a, I>(&self, icols: I) -> OMatrix<T, R, Dynamic>
-    where
+    where T: InlinedClone,
         I: IntoIterator<Item = &'a usize>,
         I::IntoIter: ExactSizeIterator,
         DefaultAllocator: Allocator<T, R, Dynamic>,
@@ -103,11 +107,12 @@ impl<T: Scalar + Zero, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 }
 
 /// # Set rows, columns, and diagonal
-impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
+impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Fills the diagonal of this matrix with the content of the given vector.
     #[inline]
     pub fn set_diagonal<R2: Dim, S2>(&mut self, diag: &Vector<T, R2, S2>)
     where
+        T: InlinedClone,
         R: DimMin<C>,
         S2: Storage<T, R2>,
         ShapeConstraint: DimEq<DimMinimum<R, C>, R2>,
@@ -139,7 +144,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Fills the selected row of this matrix with the content of the given vector.
     #[inline]
     pub fn set_row<C2: Dim, S2>(&mut self, i: usize, row: &RowVector<T, C2, S2>)
-    where
+    where T: InlinedClone,
         S2: Storage<T, U1, C2>,
         ShapeConstraint: SameNumberOfColumns<C, C2>,
     {
@@ -149,7 +154,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Fills the selected column of this matrix with the content of the given vector.
     #[inline]
     pub fn set_column<R2: Dim, S2>(&mut self, i: usize, column: &Vector<T, R2, S2>)
-    where
+    where T: InlinedClone,
         S2: Storage<T, R2, U1>,
         ShapeConstraint: SameNumberOfRows<R, R2>,
     {
@@ -158,10 +163,13 @@ impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
 }
 
 /// # In-place filling
-impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
+impl<T: InlinedClone, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Sets all the elements of this matrix to `val`.
     #[inline]
-    pub fn fill(&mut self, val: T) {
+    pub fn fill(&mut self, val: T)
+    where
+        T: InlinedClone,
+    {
         for e in self.iter_mut() {
             *e = val.inlined_clone()
         }
@@ -241,7 +249,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     }
 }
 
-impl<T: Scalar, D: Dim, S: StorageMut<T, D, D>> Matrix<T, D, D, S> {
+impl<T: InlinedClone, D: Dim, S: StorageMut<T, D, D>> Matrix<T, D, D, S> {
     /// Copies the upper-triangle of this matrix to its lower-triangular part.
     ///
     /// This makes the matrix symmetric. Panics if the matrix is not square.
@@ -275,7 +283,7 @@ impl<T: Scalar, D: Dim, S: StorageMut<T, D, D>> Matrix<T, D, D, S> {
 }
 
 /// # In-place swapping
-impl<T: Scalar, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
+impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Swaps two rows in-place.
     #[inline]
     pub fn swap_rows(&mut self, irow1: usize, irow2: usize) {
@@ -540,7 +548,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 }
 
 /// # Rows and columns insertion
-impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     /*
      *
      * Columns insertion.
@@ -550,6 +558,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[inline]
     pub fn insert_column(self, i: usize, val: T) -> OMatrix<T, R, DimSum<C, U1>>
     where
+        T: InlinedClone,
         C: DimAdd<U1>,
         DefaultAllocator: Reallocator<T, R, C, R, DimSum<C, U1>>,
     {
@@ -564,6 +573,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         val: T,
     ) -> OMatrix<T, R, DimSum<C, Const<D>>>
     where
+        T: InlinedClone,
         C: DimAdd<Const<D>>,
         DefaultAllocator: Reallocator<T, R, C, R, DimSum<C, Const<D>>>,
     {
@@ -577,6 +587,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn insert_columns(self, i: usize, n: usize, val: T) -> OMatrix<T, R, Dynamic>
     where
+        T: InlinedClone,
         C: DimAdd<Dynamic, Output = Dynamic>,
         DefaultAllocator: Reallocator<T, R, C, R, Dynamic>,
     {
@@ -596,6 +607,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         ninsert: D,
     ) -> OMatrix<T, R, DimSum<C, D>>
     where
+        T: Clone,
         D: Dim,
         C: DimAdd<D>,
         DefaultAllocator: Reallocator<T, R, C, R, DimSum<C, D>>,
@@ -632,6 +644,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[inline]
     pub fn insert_row(self, i: usize, val: T) -> OMatrix<T, DimSum<R, U1>, C>
     where
+        T: InlinedClone,
         R: DimAdd<U1>,
         DefaultAllocator: Reallocator<T, R, C, DimSum<R, U1>, C>,
     {
@@ -646,6 +659,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         val: T,
     ) -> OMatrix<T, DimSum<R, Const<D>>, C>
     where
+        T: InlinedClone,
         R: DimAdd<Const<D>>,
         DefaultAllocator: Reallocator<T, R, C, DimSum<R, Const<D>>, C>,
     {
@@ -659,6 +673,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn insert_rows(self, i: usize, n: usize, val: T) -> OMatrix<T, Dynamic, C>
     where
+        T: InlinedClone,
         R: DimAdd<Dynamic, Output = Dynamic>,
         DefaultAllocator: Reallocator<T, R, C, Dynamic, C>,
     {
@@ -680,6 +695,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         ninsert: D,
     ) -> OMatrix<T, DimSum<R, D>, C>
     where
+        T: Clone,
         D: Dim,
         R: DimAdd<D>,
         DefaultAllocator: Reallocator<T, R, C, DimSum<R, D>, C>,
@@ -709,7 +725,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 }
 
 /// # Resizing and reshaping
-impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     /// Resizes this matrix so that it contains `new_nrows` rows and `new_ncols` columns.
     ///
     /// The values are copied such that `self[(i, j)] == result[(i, j)]`. If the result has more
@@ -717,6 +733,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn resize(self, new_nrows: usize, new_ncols: usize, val: T) -> OMatrix<T, Dynamic, Dynamic>
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, C, Dynamic, Dynamic>,
     {
         self.resize_generic(Dynamic::new(new_nrows), Dynamic::new(new_ncols), val)
@@ -729,6 +746,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn resize_vertically(self, new_nrows: usize, val: T) -> OMatrix<T, Dynamic, C>
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, C, Dynamic, C>,
     {
         let ncols = self.data.shape().1;
@@ -742,6 +760,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn resize_horizontally(self, new_ncols: usize, val: T) -> OMatrix<T, R, Dynamic>
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, C, R, Dynamic>,
     {
         let nrows = self.data.shape().0;
@@ -757,6 +776,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         val: T,
     ) -> OMatrix<T, Const<R2>, Const<C2>>
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, C, Const<R2>, Const<C2>>,
     {
         self.resize_generic(Const::<R2>, Const::<C2>, val)
@@ -774,6 +794,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
         val: T,
     ) -> OMatrix<T, R2, C2>
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, C, R2, C2>,
     {
         let (nrows, ncols) = self.shape();
@@ -899,7 +920,7 @@ impl<T: Scalar, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 
 /// # In-place resizing
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T: Scalar> OMatrix<T, Dynamic, Dynamic> {
+impl<T: InlinedClone> OMatrix<T, Dynamic, Dynamic> {
     /// Resizes this matrix in-place.
     ///
     /// The values are copied such that `self[(i, j)] == result[(i, j)]`. If the result has more
@@ -920,7 +941,7 @@ impl<T: Scalar> OMatrix<T, Dynamic, Dynamic> {
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T: Scalar, C: Dim> OMatrix<T, Dynamic, C>
+impl<T: InlinedClone, C: Dim> OMatrix<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C>,
 {
@@ -958,6 +979,7 @@ where
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn resize_horizontally_mut(&mut self, new_ncols: usize, val: T)
     where
+        T: InlinedClone,
         DefaultAllocator: Reallocator<T, R, Dynamic, R, Dynamic>,
     {
         let placeholder = unsafe {
@@ -969,13 +991,7 @@ where
     }
 }
 
-unsafe fn compress_rows<T: Scalar>(
-    data: &mut [T],
-    nrows: usize,
-    ncols: usize,
-    i: usize,
-    nremove: usize,
-) {
+unsafe fn compress_rows<T>(data: &mut [T], nrows: usize, ncols: usize, i: usize, nremove: usize) {
     let new_nrows = nrows - nremove;
 
     if new_nrows == 0 || ncols == 0 {
@@ -1008,13 +1024,7 @@ unsafe fn compress_rows<T: Scalar>(
 
 // Moves entries of a matrix buffer to make place for `ninsert` emty rows starting at the `i-th` row index.
 // The `data` buffer is assumed to contained at least `(nrows + ninsert) * ncols` elements.
-unsafe fn extend_rows<T: Scalar>(
-    data: &mut [T],
-    nrows: usize,
-    ncols: usize,
-    i: usize,
-    ninsert: usize,
-) {
+unsafe fn extend_rows<T>(data: &mut [T], nrows: usize, ncols: usize, i: usize, ninsert: usize) {
     let new_nrows = nrows + ninsert;
 
     if new_nrows == 0 || ncols == 0 {
