@@ -3,7 +3,7 @@ use num::{One, Zero};
 use std::io::{Result as IOResult, Write};
 
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
@@ -262,7 +262,9 @@ impl<T, R: Dim, C: Dim, S: Abomonation> Abomonation for Matrix<T, R, C, S> {
 }
 
 #[cfg(feature = "compare")]
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> matrixcompare_core::Matrix<T> for Matrix<T, R, C, S> {
+impl<T: Clone, R: Dim, C: Dim, S: Storage<T, R, C>> matrixcompare_core::Matrix<T>
+    for Matrix<T, R, C, S>
+{
     fn rows(&self) -> usize {
         self.nrows()
     }
@@ -277,7 +279,7 @@ impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> matrixcompare_core::Matrix<T> for M
 }
 
 #[cfg(feature = "compare")]
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> matrixcompare_core::DenseAccess<T>
+impl<T: Clone, R: Dim, C: Dim, S: Storage<T, R, C>> matrixcompare_core::DenseAccess<T>
     for Matrix<T, R, C, S>
 {
     fn fetch_single(&self, row: usize, col: usize) -> T {
@@ -588,7 +590,7 @@ impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[inline]
     pub fn into_owned_sum<R2, C2>(self) -> MatrixSum<T, R, C, R2, C2>
     where
-        T: InlinedClone + Any,
+        T: InlinedClone + 'static,
         R2: Dim,
         C2: Dim,
         DefaultAllocator: SameShapeAllocator<T, R, C, R2, C2>,
@@ -2017,12 +2019,11 @@ impl<T: ClosedAdd + ClosedSub + ClosedMul + InlinedClone, R: Dim, C: Dim, S: Sto
     }
 }
 
-impl<T: Field+InlinedClone, S: Storage<T, U3>> Vector<T, U3, S> {
+impl<T: Field + InlinedClone, S: Storage<T, U3>> Vector<T, U3, S> {
     /// Computes the matrix `M` such that for all vector `v` we have `M * v == self.cross(&v)`.
     #[inline]
     #[must_use]
-    pub fn cross_matrix(&self) -> OMatrix<T, U3, U3>
-    {
+    pub fn cross_matrix(&self) -> OMatrix<T, U3, U3> {
         OMatrix::<T, U3, U3>::new(
             T::zero(),
             -self[2].inlined_clone(),

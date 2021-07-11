@@ -141,7 +141,7 @@
 //! PROPTEST_MAX_SHRINK_ITERS=100000 cargo test my_failing_test
 //! ```
 use crate::allocator::Allocator;
-use crate::{Const, DefaultAllocator, Dim, DimName, Dynamic, OMatrix, Scalar, U1};
+use crate::{Const, DefaultAllocator, Dim, DimName, Dynamic, OMatrix, U1};
 use proptest::arbitrary::Arbitrary;
 use proptest::collection::vec;
 use proptest::strategy::{BoxedStrategy, Just, NewTree, Strategy, ValueTree};
@@ -254,7 +254,6 @@ pub fn matrix<R, C, ScalarStrategy>(
 ) -> MatrixStrategy<ScalarStrategy, R, C>
 where
     ScalarStrategy: Strategy + Clone + 'static,
-    ScalarStrategy::Value: Scalar,
     R: Dim,
     C: Dim,
     DefaultAllocator: Allocator<ScalarStrategy::Value, R, C>,
@@ -270,7 +269,6 @@ fn matrix_<R, C, ScalarStrategy>(
 ) -> MatrixStrategy<ScalarStrategy, R, C>
 where
     ScalarStrategy: Strategy + Clone + 'static,
-    ScalarStrategy::Value: Scalar,
     R: Dim,
     C: Dim,
     DefaultAllocator: Allocator<ScalarStrategy::Value, R, C>,
@@ -325,7 +323,6 @@ pub fn vector<D, ScalarStrategy>(
 ) -> MatrixStrategy<ScalarStrategy, D, U1>
 where
     ScalarStrategy: Strategy + Clone + 'static,
-    ScalarStrategy::Value: Scalar,
     D: Dim,
     DefaultAllocator: Allocator<ScalarStrategy::Value, D>,
 {
@@ -390,7 +387,7 @@ where
 
 impl<T, R, C> Arbitrary for OMatrix<T, R, C>
 where
-    T: Scalar + Arbitrary,
+    T: Arbitrary,
     <T as Arbitrary>::Strategy: Clone,
     R: Dim,
     C: Dim,
@@ -412,7 +409,6 @@ where
 pub struct MatrixStrategy<NStrategy, R: Dim, C: Dim>
 where
     NStrategy: Strategy,
-    NStrategy::Value: Scalar,
     DefaultAllocator: Allocator<NStrategy::Value, R, C>,
 {
     // For now we only internally hold a boxed strategy. The reason for introducing this
@@ -424,7 +420,6 @@ where
 impl<NStrategy, R, C> Strategy for MatrixStrategy<NStrategy, R, C>
 where
     NStrategy: Strategy,
-    NStrategy::Value: Scalar,
     R: Dim,
     C: Dim,
     DefaultAllocator: Allocator<NStrategy::Value, R, C>,
@@ -443,7 +438,6 @@ where
 /// A value tree for matrices.
 pub struct MatrixValueTree<T, R, C>
 where
-    T: Scalar,
     R: Dim,
     C: Dim,
     DefaultAllocator: Allocator<T, R, C>,
@@ -455,7 +449,6 @@ where
 
 impl<T, R, C> ValueTree for MatrixValueTree<T, R, C>
 where
-    T: Scalar,
     R: Dim,
     C: Dim,
     DefaultAllocator: Allocator<T, R, C>,

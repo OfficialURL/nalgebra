@@ -22,9 +22,7 @@ use simba::scalar::{ClosedAdd, ClosedMul};
 use crate::base::allocator::Allocator;
 use crate::base::dimension::{Dim, DimName, Dynamic, ToTypenum};
 use crate::base::storage::Storage;
-use crate::base::{
-    ArrayStorage, Const, DefaultAllocator, Matrix, OMatrix, OVector, Scalar, Vector,
-};
+use crate::base::{ArrayStorage, Const, DefaultAllocator, Matrix, OMatrix, OVector, Vector};
 use crate::InlinedClone;
 
 /// When "no_unsound_assume_init" is enabled, expands to `unimplemented!()` instead of `new_uninitialized_generic().assume_init()`.
@@ -346,7 +344,6 @@ where
 
 impl<T, D: Dim> OMatrix<T, D, D>
 where
-    T: Scalar,
     DefaultAllocator: Allocator<T, D, D>,
 {
     /// Creates a square matrix with its diagonal set to `diag` and all other entries set to 0.
@@ -659,7 +656,7 @@ where
 }
 
 /// # Constructors of matrices with a dynamic number of columns
-impl<T: Scalar, R: DimName> OMatrix<T, R, Dynamic>
+impl<T, R: DimName> OMatrix<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic>,
 {
@@ -670,7 +667,7 @@ where
 }
 
 /// # Constructors of dynamic vectors and matrices with a dynamic number of rows
-impl<T: Scalar, C: DimName> OMatrix<T, Dynamic, C>
+impl<T, C: DimName> OMatrix<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C>,
 {
@@ -681,7 +678,7 @@ where
 }
 
 /// # Constructors of fully dynamic matrices
-impl<T: Scalar> OMatrix<T, Dynamic, Dynamic>
+impl<T> OMatrix<T, Dynamic, Dynamic>
 where
     DefaultAllocator: Allocator<T, Dynamic, Dynamic>,
 {
@@ -699,8 +696,10 @@ where
  */
 macro_rules! impl_constructors_from_data(
     ($data: ident; $($Dims: ty),*; $(=> $DimIdent: ident: $DimBound: ident),*; $($gargs: expr),*; $($args: ident),*) => {
-        impl<T: Scalar, $($DimIdent: $DimBound, )*> OMatrix<T $(, $Dims)*>
-        where DefaultAllocator: Allocator<T $(, $Dims)*> {
+        impl<T, $($DimIdent: $DimBound, )*> OMatrix<T $(, $Dims)*>
+        where
+            DefaultAllocator: Allocator<T $(, $Dims)*>
+        {
             /// Creates a matrix with its elements filled with the components provided by a slice
             /// in row-major order.
             ///
@@ -757,7 +756,10 @@ macro_rules! impl_constructors_from_data(
             ///         dm[(1, 0)] == 1 && dm[(1, 1)] == 3 && dm[(1, 2)] == 5);
             /// ```
             #[inline]
-            pub fn from_column_slice($($args: usize,)* $data: &[T]) -> Self {
+            pub fn from_column_slice($($args: usize,)* $data: &[T]) -> Self
+            where
+                T: Clone
+            {
                 Self::from_column_slice_generic($($gargs, )* $data)
             }
 
@@ -859,7 +861,7 @@ where
 }
 
 #[cfg(feature = "rand-no-std")]
-impl<T: Scalar, R: Dim, C: Dim> Distribution<OMatrix<T, R, C>> for Standard
+impl<T, R: Dim, C: Dim> Distribution<OMatrix<T, R, C>> for Standard
 where
     DefaultAllocator: Allocator<T, R, C>,
     Standard: Distribution<T>,
@@ -878,7 +880,7 @@ impl<T, R, C> Arbitrary for OMatrix<T, R, C>
 where
     R: Dim,
     C: Dim,
-    T: Scalar + Arbitrary + Send,
+    T: Arbitrary + Send,
     DefaultAllocator: Allocator<T, R, C>,
     Owned<T, R, C>: Clone + Send,
 {

@@ -3,7 +3,7 @@ use crate::{InlinedClone, SimdComplexField};
 use matrixmultiply;
 use num::{One, Zero};
 use simba::scalar::{ClosedAdd, ClosedMul};
-use std::any::{ TypeId};
+use std::any::TypeId;
 #[cfg(feature = "std")]
 use std::mem;
 
@@ -13,9 +13,7 @@ use crate::base::constraint::{
 };
 use crate::base::dimension::{Const, Dim, Dynamic, U1, U2, U3, U4};
 use crate::base::storage::{Storage, StorageMut};
-use crate::base::{
-    DVectorSlice, DefaultAllocator, Matrix, Scalar, SquareMatrix, Vector, VectorSlice,
-};
+use crate::base::{DVectorSlice, DefaultAllocator, Matrix, SquareMatrix, Vector, VectorSlice};
 
 /// # Dot/scalar product
 impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S>
@@ -1105,7 +1103,7 @@ where
 
 impl<T, R1: Dim, C1: Dim, S: StorageMut<T, R1, C1>> Matrix<T, R1, C1, S>
 where
-    T: Scalar + Zero + ClosedAdd + ClosedMul,
+    T: Zero + ClosedAdd + ClosedMul,
 {
     #[inline(always)]
     fn xxgerx<D2: Dim, D3: Dim, SB, SC>(
@@ -1253,7 +1251,7 @@ where
 
 impl<T, D1: Dim, S: StorageMut<T, D1, D1>> SquareMatrix<T, D1, S>
 where
-    T: Scalar + Zero + One + ClosedAdd + ClosedMul,
+    T: Zero + One + ClosedAdd + ClosedMul,
 {
     /// Computes the quadratic form `self = alpha * lhs * mid * lhs.transpose() + beta * self`.
     ///

@@ -2,7 +2,7 @@
 
 use crate::base::storage::{Storage, StorageMut};
 use crate::base::{
-    Const, Dim, DimDiff, DimName, DimSub, Dynamic, Matrix, MatrixSlice, MatrixSliceMut,  U1,
+    Const, Dim, DimDiff, DimName, DimSub, Dynamic, Matrix, MatrixSlice, MatrixSliceMut, U1,
 };
 
 use std::ops;
@@ -589,7 +589,7 @@ where
 
 // EXTRACT A SINGLE ELEMENT BY 2D COORDINATES
 
-impl<'a, T:'a, R, C, S> MatrixIndex<'a, T, R, C, S> for (usize, usize)
+impl<'a, T: 'a, R, C, S> MatrixIndex<'a, T, R, C, S> for (usize, usize)
 where
     R: Dim,
     C: Dim,
@@ -613,7 +613,7 @@ where
     }
 }
 
-impl<'a, T:'a, R, C, S> MatrixIndexMut<'a, T, R, C, S> for (usize, usize)
+impl<'a, T: 'a, R, C, S> MatrixIndexMut<'a, T, R, C, S> for (usize, usize)
 where
     R: Dim,
     C: Dim,

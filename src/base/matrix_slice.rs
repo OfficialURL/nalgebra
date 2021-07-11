@@ -7,7 +7,7 @@ use crate::base::default_allocator::DefaultAllocator;
 use crate::base::dimension::{Const, Dim, DimName, Dynamic, IsNotStaticOne, U1};
 use crate::base::iter::MatrixIter;
 use crate::base::storage::{ContiguousStorage, ContiguousStorageMut, Owned, Storage, StorageMut};
-use crate::base::{Matrix, };
+use crate::base::Matrix;
 
 macro_rules! slice_storage_impl(
     ($doc: expr; $Storage: ident as $SRef: ty; $T: ident.$get_addr: ident ($Ptr: ty as $Ref: ty)) => {

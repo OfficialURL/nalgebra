@@ -5,7 +5,6 @@
 use nalgebra::allocator::Allocator;
 use nalgebra::base::dimension::*;
 use nalgebra::proptest::{DimRange, MatrixStrategy};
-use nalgebra::Scalar;
 use nalgebra::{DMatrix, DVector, DefaultAllocator, Dim, Matrix3, OMatrix, Vector3, U3, U4};
 use num_complex::Complex;
 use proptest::prelude::*;
@@ -35,7 +34,6 @@ pub fn dmatrix_<ScalarStrategy>(
 ) -> impl Strategy<Value = OMatrix<ScalarStrategy::Value, Dynamic, Dynamic>>
 where
     ScalarStrategy: Strategy + Clone + 'static,
-    ScalarStrategy::Value: Scalar,
     DefaultAllocator: Allocator<ScalarStrategy::Value, Dynamic, Dynamic>,
 {
     matrix(scalar_strategy, PROPTEST_MATRIX_DIM, PROPTEST_MATRIX_DIM)
@@ -57,9 +55,9 @@ macro_rules! define_strategies(
         }
 
         pub fn $strategy_<ScalarStrategy>(scalar_strategy: ScalarStrategy) -> impl Strategy<Value = OMatrix<ScalarStrategy::Value, Const<$nrows>, Const<$ncols>>>
-            where
-                ScalarStrategy: Strategy + Clone + 'static,
-                ScalarStrategy::Value: Scalar, {
+        where
+            ScalarStrategy: Strategy + Clone + 'static,
+        {
             matrix(scalar_strategy, Const::<$nrows>, Const::<$ncols>)
         }
     )*}
