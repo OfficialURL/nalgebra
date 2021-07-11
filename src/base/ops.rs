@@ -7,7 +7,7 @@ use std::ops::{
 use simba::scalar::{ClosedAdd, ClosedDiv, ClosedMul, ClosedNeg, ClosedSub};
 
 use crate::base::allocator::{
-    Allocator, BaseAllocator, SameShapeAllocator, SameShapeC, SameShapeR,
+    Allocator, Allocator, SameShapeAllocator, SameShapeC, SameShapeR,
 };
 use crate::base::constraint::{
     AreMultipliable, DimEq, SameNumberOfColumns, SameNumberOfRows, ShapeConstraint,
@@ -636,7 +636,7 @@ where
     SB: Storage<T, R2, C1>,
     SA: ContiguousStorageMut<T, R1, C1> + Clone,
     ShapeConstraint: AreMultipliable<R1, C1, R2, C1>,
-    DefaultAllocator: BaseAllocator<T, R1, C1, Buffer = SA>,
+    DefaultAllocator: Allocator<T, R1, C1, Buffer = SA>,
 {
     #[inline]
     fn mul_assign(&mut self, rhs: Matrix<T, R2, C1, SB>) {
@@ -654,7 +654,7 @@ where
     SA: ContiguousStorageMut<T, R1, C1> + Clone,
     ShapeConstraint: AreMultipliable<R1, C1, R2, C1>,
     // TODO: this is too restrictive. See comments for the non-ref version.
-    DefaultAllocator: BaseAllocator<T, R1, C1, Buffer = SA>,
+    DefaultAllocator: Allocator<T, R1, C1, Buffer = SA>,
 {
     #[inline]
     fn mul_assign(&mut self, rhs: &'b Matrix<T, R2, C1, SB>) {

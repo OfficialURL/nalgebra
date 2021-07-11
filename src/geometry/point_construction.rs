@@ -165,7 +165,7 @@ where
 #[cfg(feature = "arbitrary")]
 impl<T: Scalar + Arbitrary + Send, const D: usize> Arbitrary for Point<T, D>
 where
-    <DefaultAllocator as crate::base::allocator::BaseAllocator<T, Const<D>>>::Buffer: Send,
+    <DefaultAllocator as crate::base::allocator::Allocator<T, Const<D>>>::Buffer: Send,
 {
     #[inline]
     fn arbitrary(g: &mut Gen) -> Self {

@@ -12,7 +12,7 @@ use std::ptr;
 use alloc::vec::Vec;
 
 use super::Const;
-use crate::base::allocator::{Allocator, BaseAllocator, Reallocator};
+use crate::base::allocator::{Allocator, Allocator, Reallocator};
 use crate::base::array_storage::ArrayStorage;
 #[cfg(any(feature = "alloc", feature = "std"))]
 use crate::base::dimension::Dynamic;
@@ -32,7 +32,7 @@ use crate::storage::Uninit;
 pub struct DefaultAllocator;
 
 // Static - Static
-impl<T, const R: usize, const C: usize> BaseAllocator<T, Const<R>, Const<C>> for DefaultAllocator {
+impl<T, const R: usize, const C: usize> Allocator<T, Const<R>, Const<C>> for DefaultAllocator {
     type Buffer = ArrayStorage<T, R, C>;
 
     #[inline]
@@ -62,7 +62,7 @@ impl<T, const R: usize, const C: usize> BaseAllocator<T, Const<R>, Const<C>> for
 // Dynamic - Static
 // Dynamic - Dynamic
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, C: Dim> BaseAllocator<T, Dynamic, C> for DefaultAllocator {
+impl<T, C: Dim> Allocator<T, Dynamic, C> for DefaultAllocator {
     type Buffer = VecStorage<T, Dynamic, C>;
 
     #[inline]
@@ -82,7 +82,7 @@ impl<T, C: Dim> BaseAllocator<T, Dynamic, C> for DefaultAllocator {
 
 // Static - Dynamic
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, R: DimName> BaseAllocator<T, R, Dynamic> for DefaultAllocator {
+impl<T, R: DimName> Allocator<T, R, Dynamic> for DefaultAllocator {
     type Buffer = VecStorage<T, R, Dynamic>;
 
     #[inline]
@@ -117,9 +117,9 @@ where
     unsafe fn reallocate_copy(
         rto: Const<RTO>,
         cto: Const<CTO>,
-        buf: <Self as BaseAllocator<T, RFrom, CFrom>>::Buffer,
+        buf: <Self as Allocator<T, RFrom, CFrom>>::Buffer,
     ) -> ArrayStorage<T, RTO, CTO> {
-        let mut res = <Self as BaseAllocator<mem::MaybeUninit<T>, Const<RTO>, Const<CTO>>>::allocate_from_iterator(
+        let mut res = <Self as Allocator<mem::MaybeUninit<T>, Const<RTO>, Const<CTO>>>::allocate_from_iterator(
             rto,
             cto,
             iter::repeat_with(mem::MaybeUninit::uninit),
@@ -152,7 +152,7 @@ where
         cto: CTo,
         buf: ArrayStorage<T, RFROM, CFROM>,
     ) -> VecStorage<T, Dynamic, CTo> {
-        let mut res = <Self as BaseAllocator<mem::MaybeUninit<T>, _, _>>::allocate_from_iterator(
+        let mut res = <Self as Allocator<mem::MaybeUninit<T>, _, _>>::allocate_from_iterator(
             rto,
             cto,
             iter::repeat_with(mem::MaybeUninit::uninit),
@@ -185,7 +185,7 @@ where
         cto: Dynamic,
         buf: ArrayStorage<T, RFROM, CFROM>,
     ) -> VecStorage<T, RTo, Dynamic> {
-        let mut res = <Self as BaseAllocator<mem::MaybeUninit<T>, _, _>>::allocate_from_iterator(
+        let mut res = <Self as Allocator<mem::MaybeUninit<T>, _, _>>::allocate_from_iterator(
             rto,
             cto,
             iter::repeat_with(mem::MaybeUninit::uninit),

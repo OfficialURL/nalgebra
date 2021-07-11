@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use std::mem;
 
-use crate::base::allocator::{Allocator, BaseAllocator};
+use crate::base::allocator::{Allocator, Allocator};
 use crate::base::constraint::{SameNumberOfRows, ShapeConstraint};
 use crate::base::default_allocator::DefaultAllocator;
 use crate::base::dimension::{Dim, DimName, Dynamic, U1};
@@ -176,7 +176,7 @@ unsafe impl<T, R: Dim, C: Dim> Uninit for VecStorage<mem::MaybeUninit<T>, R, C> 
  */
 unsafe impl<T, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
-    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>,
+    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
     type RStride = U1;
     type CStride = Dynamic;
@@ -226,7 +226,7 @@ where
 
 unsafe impl<T, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
-    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>,
+    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
     type RStride = U1;
     type CStride = R;
@@ -281,7 +281,7 @@ where
  */
 unsafe impl<T, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
-    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>,
+    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
@@ -295,12 +295,12 @@ where
 }
 
 unsafe impl<T, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
-    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>
+    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
 unsafe impl<T, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
-    DefaultAllocator: BaseAllocator<T, Dynamic, C, Buffer = Self>
+    DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
@@ -340,7 +340,7 @@ where
 
 unsafe impl<T, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
-    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>,
+    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
@@ -403,12 +403,12 @@ impl<T: Abomonation, R: Dim, C: Dim> Abomonation for VecStorage<T, R, C> {
 }
 
 unsafe impl<T, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
-    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>
+    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
 
 unsafe impl<T, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
-    DefaultAllocator: BaseAllocator<T, R, Dynamic, Buffer = Self>
+    DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
 

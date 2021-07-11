@@ -17,7 +17,7 @@ use abomonation::Abomonation;
 use simba::scalar::RealField;
 use simba::simd::SimdRealField;
 
-use crate::base::allocator::{Allocator, BaseAllocator};
+use crate::base::allocator::{Allocator, Allocator};
 use crate::base::dimension::{DimNameAdd, DimNameSum, U1};
 use crate::base::{Const, DefaultAllocator, OMatrix, SMatrix, SVector, Scalar, Unit};
 use crate::geometry::Point;
@@ -61,7 +61,7 @@ pub struct Rotation<T: Scalar, const D: usize> {
 
 impl<T: Scalar + hash::Hash, const D: usize> hash::Hash for Rotation<T, D>
 where
-    <DefaultAllocator as BaseAllocator<T, Const<D>, Const<D>>>::Buffer: hash::Hash,
+    <DefaultAllocator as Allocator<T, Const<D>, Const<D>>>::Buffer: hash::Hash,
 {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.matrix.hash(state)
@@ -69,13 +69,13 @@ where
 }
 
 impl<T: Scalar + Copy, const D: usize> Copy for Rotation<T, D> where
-    <DefaultAllocator as BaseAllocator<T, Const<D>, Const<D>>>::Buffer: Copy
+    <DefaultAllocator as Allocator<T, Const<D>, Const<D>>>::Buffer: Copy
 {
 }
 
 impl<T: Scalar, const D: usize> Clone for Rotation<T, D>
 where
-    <DefaultAllocator as BaseAllocator<T, Const<D>, Const<D>>>::Buffer: Clone,
+    <DefaultAllocator as Allocator<T, Const<D>, Const<D>>>::Buffer: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {

@@ -14,7 +14,7 @@ use abomonation::Abomonation;
 
 use simba::simd::SimdPartialOrd;
 
-use crate::base::allocator::{Allocator, BaseAllocator};
+use crate::base::allocator::{Allocator, Allocator};
 use crate::base::dimension::{DimName, DimNameAdd, DimNameSum, U1};
 use crate::base::iter::{MatrixIter, MatrixIterMut};
 use crate::base::{Const, DefaultAllocator, Matrix, OVector, SVector, Scalar};
@@ -243,7 +243,7 @@ impl<T: Scalar, const D: usize> Point<T, D> {
     #[inline]
     pub fn iter(
         &self,
-    ) -> MatrixIter<T, Const<D>, Const<1>, <DefaultAllocator as BaseAllocator<T, Const<D>>>::Buffer>
+    ) -> MatrixIter<T, Const<D>, Const<1>, <DefaultAllocator as Allocator<T, Const<D>>>::Buffer>
     {
         self.coords.iter()
     }
@@ -274,7 +274,7 @@ impl<T: Scalar, const D: usize> Point<T, D> {
         T,
         Const<D>,
         Const<1>,
-        <DefaultAllocator as BaseAllocator<T, Const<D>>>::Buffer,
+        <DefaultAllocator as Allocator<T, Const<D>>>::Buffer,
     > {
         self.coords.iter_mut()
     }

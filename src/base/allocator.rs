@@ -17,12 +17,7 @@ use crate::base::{DefaultAllocator, Scalar};
 ///
 /// Every allocator must be both static and dynamic. Though not all implementations may share the
 /// same `Buffer` type.
-///
-/// # Convenience note
-/// Many methods internally define uninitialized buffers, which require this trait to be satisfied
-/// for `MaybeUninit<T>` as well. For convenience, you can use the [`Allocator`] trait for this
-/// purpose.
-pub trait BaseAllocator<T, R: Dim, C: Dim = U1>: Any + Sized {
+pub trait Allocator<T, R: Dim, C: Dim = U1>: Any + Sized {
     /// The type of buffer this allocator can instanciate.
     type Buffer: ContiguousStorageMut<T, R, C>;
 
@@ -34,19 +29,6 @@ pub trait BaseAllocator<T, R: Dim, C: Dim = U1>: Any + Sized {
     ) -> Self::Buffer;
 }
 
-/// An auxiliary trait that concisely allows one to specify that allocation of both a type `T`
-/// and its uninitialized counterpart `MaybeUninit<T>` are possible. 
-///
-/// See the base trait [`BaseAllocator`] for more details.
-pub trait Allocator<T, R: Dim, C: Dim = U1>:
-    BaseAllocator<T, R, C> + BaseAllocator<mem::MaybeUninit<T>, R, C>
-{
-}
-
-impl<S, T, R: Dim, C: Dim> Allocator<T, R, C> for S where
-    S: BaseAllocator<T, R, C> + BaseAllocator<mem::MaybeUninit<T>, R, C>
-{
-}
 
 /// A matrix reallocator. Changes the size of the memory buffer that initially contains (RFrom ×
 /// CFrom) elements to a smaller or larger size (RTo, CTo).
@@ -64,8 +46,8 @@ pub trait Reallocator<T, RFrom: Dim, CFrom: Dim, RTo: Dim, CTo: Dim>:
     unsafe fn reallocate_copy(
         nrows: RTo,
         ncols: CTo,
-        buf: <Self as BaseAllocator<T, RFrom, CFrom>>::Buffer,
-    ) -> <Self as BaseAllocator<T, RTo, CTo>>::Buffer;
+        buf: <Self as Allocator<T, RFrom, CFrom>>::Buffer,
+    ) -> <Self as Allocator<T, RTo, CTo>>::Buffer;
 }
 
 /// The number of rows of the result of a componentwise operation on two matrices.
