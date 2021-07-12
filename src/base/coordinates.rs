@@ -4,6 +4,7 @@
 //! components using their names. For example, if `v` is a 3D vector, one can write `v.z` instead
 //! of `v[2]`.
 
+use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 use crate::base::dimension::{U1, U2, U3, U4, U5, U6};
@@ -31,7 +32,7 @@ macro_rules! coords_impl(
 
 macro_rules! deref_impl(
     ($R: ty, $C: ty; $Target: ident) => {
-        impl<T, S> Deref for Matrix<T, $R, $C, S>
+        impl<T: Debug, S> Deref for Matrix<T, $R, $C, S>
             where S: ContiguousStorage<T, $R, $C> {
             type Target = $Target<T>;
 
@@ -41,7 +42,7 @@ macro_rules! deref_impl(
             }
         }
 
-        impl<T, S> DerefMut for Matrix<T, $R, $C, S>
+        impl<T:Debug, S> DerefMut for Matrix<T, $R, $C, S>
             where S: ContiguousStorageMut<T, $R, $C> {
             #[inline]
             fn deref_mut(&mut self) -> &mut Self::Target {

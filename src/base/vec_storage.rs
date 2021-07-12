@@ -4,6 +4,8 @@ use std::io::{Result as IOResult, Write};
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 use alloc::vec::Vec;
 
+use std::fmt::Debug;
+
 use crate::base::allocator::Allocator;
 use crate::base::constraint::{SameNumberOfRows, ShapeConstraint};
 use crate::base::default_allocator::DefaultAllocator;
@@ -157,7 +159,7 @@ impl<T, R: Dim, C: Dim> From<VecStorage<T, R, C>> for Vec<T> {
  * Dynamic − Dynamic
  *
  */
-unsafe impl<T, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T: Debug, C: Dim> Storage<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
@@ -207,7 +209,7 @@ where
     }
 }
 
-unsafe impl<T, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T: Debug, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
@@ -262,7 +264,7 @@ where
  * StorageMut, ContiguousStorage.
  *
  */
-unsafe impl<T, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
+unsafe impl<T: Debug, C: Dim> StorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C>
 where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>,
 {
@@ -277,20 +279,18 @@ where
     }
 }
 
-unsafe impl<T, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+unsafe impl<T: Debug, C: Dim> ContiguousStorage<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
-unsafe impl<T, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
+unsafe impl<T: Debug, C: Dim> ContiguousStorageMut<T, Dynamic, C> for VecStorage<T, Dynamic, C> where
     DefaultAllocator: Allocator<T, Dynamic, C, Buffer = Self>
 {
 }
 
-impl<T, C1, C2> ReshapableStorage<T, Dynamic, C1, Dynamic, C2> for VecStorage<T, Dynamic, C1>
-where
-    C1: Dim,
-    C2: Dim,
+impl<T: Debug, C1: Dim, C2: Dim> ReshapableStorage<T, Dynamic, C1, Dynamic, C2>
+    for VecStorage<T, Dynamic, C1>
 {
     type Output = VecStorage<T, Dynamic, C2>;
 
@@ -304,10 +304,8 @@ where
     }
 }
 
-impl<T, C1, R2> ReshapableStorage<T, Dynamic, C1, R2, Dynamic> for VecStorage<T, Dynamic, C1>
-where
-    C1: Dim,
-    R2: DimName,
+impl<T: Debug, C1: Dim, R2: DimName> ReshapableStorage<T, Dynamic, C1, R2, Dynamic>
+    for VecStorage<T, Dynamic, C1>
 {
     type Output = VecStorage<T, R2, Dynamic>;
 
@@ -321,7 +319,7 @@ where
     }
 }
 
-unsafe impl<T, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
+unsafe impl<T: Debug, R: DimName> StorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic>
 where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>,
 {
@@ -336,10 +334,8 @@ where
     }
 }
 
-impl<T, R1, C2> ReshapableStorage<T, R1, Dynamic, Dynamic, C2> for VecStorage<T, R1, Dynamic>
-where
-    R1: DimName,
-    C2: Dim,
+impl<T: Debug, R1: DimName, C2: Dim> ReshapableStorage<T, R1, Dynamic, Dynamic, C2>
+    for VecStorage<T, R1, Dynamic>
 {
     type Output = VecStorage<T, Dynamic, C2>;
 
@@ -353,10 +349,8 @@ where
     }
 }
 
-impl<T, R1, R2> ReshapableStorage<T, R1, Dynamic, R2, Dynamic> for VecStorage<T, R1, Dynamic>
-where
-    R1: DimName,
-    R2: DimName,
+impl<T: Debug, R1: DimName, R2: DimName> ReshapableStorage<T, R1, Dynamic, R2, Dynamic>
+    for VecStorage<T, R1, Dynamic>
 {
     type Output = VecStorage<T, R2, Dynamic>;
 
@@ -385,12 +379,12 @@ impl<T: Abomonation, R: Dim, C: Dim> Abomonation for VecStorage<T, R, C> {
     }
 }
 
-unsafe impl<T, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+unsafe impl<T: Debug, R: DimName> ContiguousStorage<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
 
-unsafe impl<T, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
+unsafe impl<T: Debug, R: DimName> ContiguousStorageMut<T, R, Dynamic> for VecStorage<T, R, Dynamic> where
     DefaultAllocator: Allocator<T, R, Dynamic, Buffer = Self>
 {
 }
@@ -424,11 +418,8 @@ impl<'a, T: 'a + Copy, R: Dim> Extend<&'a T> for VecStorage<T, R, Dynamic> {
     }
 }
 
-impl<T, R, RV, SV> Extend<Vector<T, RV, SV>> for VecStorage<T, R, Dynamic>
+impl<T: Clone + Debug, R: Dim, RV: Dim, SV> Extend<Vector<T, RV, SV>> for VecStorage<T, R, Dynamic>
 where
-    T: Clone,
-    R: Dim,
-    RV: Dim,
     SV: Storage<T, RV>,
     ShapeConstraint: SameNumberOfRows<R, RV>,
 {

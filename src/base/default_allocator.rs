@@ -4,6 +4,7 @@
 //! heap-allocated buffers for matrices with at least one dimension unknown at compile-time.
 
 use std::cmp;
+use std::fmt::Debug;
 use std::mem;
 use std::mem::MaybeUninit;
 use std::ptr;
@@ -31,7 +32,9 @@ use crate::base::vec_storage::VecStorage;
 pub struct DefaultAllocator;
 
 // Static - Static
-impl<T, const R: usize, const C: usize> Allocator<T, Const<R>, Const<C>> for DefaultAllocator {
+impl<T: Debug, const R: usize, const C: usize> Allocator<T, Const<R>, Const<C>>
+    for DefaultAllocator
+{
     type Buffer = ArrayStorage<T, R, C>;
     type UninitBuffer = ArrayStorage<MaybeUninit<T>, R, C>;
 
@@ -69,7 +72,7 @@ impl<T, const R: usize, const C: usize> Allocator<T, Const<R>, Const<C>> for Def
 // Dynamic - Static
 // Dynamic - Dynamic
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, C: Dim> Allocator<T, Dynamic, C> for DefaultAllocator {
+impl<T: Debug, C: Dim> Allocator<T, Dynamic, C> for DefaultAllocator {
     type Buffer = VecStorage<T, Dynamic, C>;
     type UninitBuffer = VecStorage<MaybeUninit<T>, Dynamic, C>;
 
@@ -100,7 +103,7 @@ impl<T, C: Dim> Allocator<T, Dynamic, C> for DefaultAllocator {
 
 // Static - Dynamic
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, R: DimName> Allocator<T, R, Dynamic> for DefaultAllocator {
+impl<T: Debug, R: DimName> Allocator<T, R, Dynamic> for DefaultAllocator {
     type Buffer = VecStorage<T, R, Dynamic>;
     type UninitBuffer = VecStorage<MaybeUninit<T>, R, Dynamic>;
 
@@ -135,11 +138,9 @@ impl<T, R: DimName> Allocator<T, R, Dynamic> for DefaultAllocator {
  *
  */
 // Anything -> Static × Static
-impl<T, RFrom, CFrom, const RTO: usize, const CTO: usize>
+impl<T: Debug, RFrom: Dim, CFrom: Dim, const RTO: usize, const CTO: usize>
     Reallocator<T, RFrom, CFrom, Const<RTO>, Const<CTO>> for DefaultAllocator
 where
-    RFrom: Dim,
-    CFrom: Dim,
     Self: Allocator<T, RFrom, CFrom>,
 {
     #[inline]
@@ -167,10 +168,8 @@ where
 
 // Static × Static -> Dynamic × Any
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, CTo, const RFROM: usize, const CFROM: usize>
+impl<T: Debug, CTo: Dim, const RFROM: usize, const CFROM: usize>
     Reallocator<T, Const<RFROM>, Const<CFROM>, Dynamic, CTo> for DefaultAllocator
-where
-    CTo: Dim,
 {
     #[inline]
     unsafe fn reallocate_copy(
@@ -196,10 +195,8 @@ where
 
 // Static × Static -> Static × Dynamic
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, RTo, const RFROM: usize, const CFROM: usize>
+impl<T: Debug, RTo: DimName, const RFROM: usize, const CFROM: usize>
     Reallocator<T, Const<RFROM>, Const<CFROM>, RTo, Dynamic> for DefaultAllocator
-where
-    RTo: DimName,
 {
     #[inline]
     unsafe fn reallocate_copy(
@@ -225,7 +222,9 @@ where
 
 // All conversion from a dynamic buffer to a dynamic buffer.
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, CFrom: Dim, CTo: Dim> Reallocator<T, Dynamic, CFrom, Dynamic, CTo> for DefaultAllocator {
+impl<T: Debug, CFrom: Dim, CTo: Dim> Reallocator<T, Dynamic, CFrom, Dynamic, CTo>
+    for DefaultAllocator
+{
     #[inline]
     unsafe fn reallocate_copy(
         rto: Dynamic,
@@ -238,7 +237,7 @@ impl<T, CFrom: Dim, CTo: Dim> Reallocator<T, Dynamic, CFrom, Dynamic, CTo> for D
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, CFrom: Dim, RTo: DimName> Reallocator<T, Dynamic, CFrom, RTo, Dynamic>
+impl<T: Debug, CFrom: Dim, RTo: DimName> Reallocator<T, Dynamic, CFrom, RTo, Dynamic>
     for DefaultAllocator
 {
     #[inline]
@@ -253,7 +252,7 @@ impl<T, CFrom: Dim, RTo: DimName> Reallocator<T, Dynamic, CFrom, RTo, Dynamic>
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, RFrom: DimName, CTo: Dim> Reallocator<T, RFrom, Dynamic, Dynamic, CTo>
+impl<T: Debug, RFrom: DimName, CTo: Dim> Reallocator<T, RFrom, Dynamic, Dynamic, CTo>
     for DefaultAllocator
 {
     #[inline]
@@ -268,7 +267,7 @@ impl<T, RFrom: DimName, CTo: Dim> Reallocator<T, RFrom, Dynamic, Dynamic, CTo>
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<T, RFrom: DimName, RTo: DimName> Reallocator<T, RFrom, Dynamic, RTo, Dynamic>
+impl<T: Debug, RFrom: DimName, RTo: DimName> Reallocator<T, RFrom, Dynamic, RTo, Dynamic>
     for DefaultAllocator
 {
     #[inline]

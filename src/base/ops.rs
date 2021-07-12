@@ -1,4 +1,5 @@
 use num::{One, Zero};
+use std::fmt::Debug;
 use std::iter;
 use std::ops::{
     Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
@@ -12,8 +13,8 @@ use crate::base::constraint::{
 };
 use crate::base::dimension::{Dim, DimMul, DimName, DimProd, Dynamic};
 use crate::base::storage::{ContiguousStorageMut, Storage, StorageMut};
+use crate::base::Scalar;
 use crate::base::{DefaultAllocator, Matrix, MatrixSum, OMatrix, VectorSlice};
-use crate::InlinedClone;
 use crate::SimdComplexField;
 
 /*
@@ -21,7 +22,7 @@ use crate::SimdComplexField;
  * Indexing.
  *
  */
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Index<usize> for Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: Storage<T, R, C>> Index<usize> for Matrix<T, R, C, S> {
     type Output = T;
 
     #[inline]
@@ -31,7 +32,7 @@ impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Index<usize> for Matrix<T, R, C, S>
     }
 }
 
-impl<T, R: Dim, C: Dim, S> Index<(usize, usize)> for Matrix<T, R, C, S>
+impl<T: Debug, R: Dim, C: Dim, S> Index<(usize, usize)> for Matrix<T, R, C, S>
 where
     S: Storage<T, R, C>,
 {
@@ -50,7 +51,7 @@ where
 }
 
 // Mutable versions.
-impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> IndexMut<usize> for Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: StorageMut<T, R, C>> IndexMut<usize> for Matrix<T, R, C, S> {
     #[inline]
     fn index_mut(&mut self, i: usize) -> &mut T {
         let ij = self.vector_to_matrix_index(i);
@@ -58,7 +59,7 @@ impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> IndexMut<usize> for Matrix<T, R,
     }
 }
 
-impl<T, R: Dim, C: Dim, S> IndexMut<(usize, usize)> for Matrix<T, R, C, S>
+impl<T: Debug, R: Dim, C: Dim, S> IndexMut<(usize, usize)> for Matrix<T, R, C, S>
 where
     S: StorageMut<T, R, C>,
 {
@@ -81,7 +82,7 @@ where
  */
 impl<T, R: Dim, C: Dim, S> Neg for Matrix<T, R, C, S>
 where
-    T: ClosedNeg + InlinedClone,
+    T: ClosedNeg + Scalar,
     S: Storage<T, R, C>,
     DefaultAllocator: Allocator<T, R, C>,
 {
@@ -97,7 +98,7 @@ where
 
 impl<'a, T, R: Dim, C: Dim, S> Neg for &'a Matrix<T, R, C, S>
 where
-    T: ClosedNeg + InlinedClone,
+    T: ClosedNeg + Scalar,
     S: Storage<T, R, C>,
     DefaultAllocator: Allocator<T, R, C>,
 {
@@ -111,7 +112,7 @@ where
 
 impl<T, R: Dim, C: Dim, S> Matrix<T, R, C, S>
 where
-    T: ClosedNeg + InlinedClone,
+    T: ClosedNeg + Scalar,
     S: StorageMut<T, R, C>,
 {
     /// Negates `self` in-place.
@@ -134,7 +135,7 @@ macro_rules! componentwise_binop_impl(
      $TraitAssign: ident, $method_assign: ident, $method_assign_statically_unchecked: ident,
      $method_assign_statically_unchecked_rhs: ident;
      $method_to: ident, $method_to_statically_unchecked: ident) => {
-        impl<T: InlinedClone + $bound, R1: Dim, C1: Dim, SA: Storage<T, R1, C1>> Matrix<T, R1, C1, SA>
+        impl<T: Scalar + $bound, R1: Dim, C1: Dim, SA: Storage<T, R1, C1>> Matrix<T, R1, C1, SA>
         {
             /*
              *
@@ -254,7 +255,7 @@ macro_rules! componentwise_binop_impl(
                 rhs: &Matrix<T, R2, C2, SB>,
                 out: &mut Matrix<T, R3, C3, SC>
             ) where
-                T: InlinedClone + 'static,
+                T: Scalar,
                 SB: Storage<T, R2, C2>,
                 SC: StorageMut<T, R3, C3>,
                 ShapeConstraint: SameNumberOfRows<R1, R2> + SameNumberOfColumns<C1, C2> +
@@ -266,7 +267,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<'b, T, R1, C1, R2, C2, SA, SB> $Trait<&'b Matrix<T, R2, C2, SB>> for Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: Storage<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   DefaultAllocator: SameShapeAllocator<T, R1, C1, R2, C2>,
@@ -284,7 +285,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<'a, T, R1, C1, R2, C2, SA, SB> $Trait<Matrix<T, R2, C2, SB>> for &'a Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: Storage<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   DefaultAllocator: SameShapeAllocator<T, R2, C2, R1, C1>,
@@ -302,7 +303,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<T, R1, C1, R2, C2, SA, SB> $Trait<Matrix<T, R2, C2, SB>> for Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: Storage<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   DefaultAllocator: SameShapeAllocator<T, R1, C1, R2, C2>,
@@ -317,7 +318,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<'a, 'b, T, R1, C1, R2, C2, SA, SB> $Trait<&'b Matrix<T, R2, C2, SB>> for &'a Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: Storage<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   DefaultAllocator: SameShapeAllocator<T, R1, C1, R2, C2>,
@@ -340,7 +341,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<'b, T, R1, C1, R2, C2, SA, SB> $TraitAssign<&'b Matrix<T, R2, C2, SB>> for Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: StorageMut<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   ShapeConstraint: SameNumberOfRows<R1, R2> + SameNumberOfColumns<C1, C2> {
@@ -353,7 +354,7 @@ macro_rules! componentwise_binop_impl(
 
         impl<T, R1, C1, R2, C2, SA, SB> $TraitAssign<Matrix<T, R2, C2, SB>> for Matrix<T, R1, C1, SA>
             where R1: Dim, C1: Dim, R2: Dim, C2: Dim,
-                  T: InlinedClone + $bound + 'static,
+                  T: Scalar + $bound,
                   SA: StorageMut<T, R1, C1>,
                   SB: Storage<T, R2, C2>,
                   ShapeConstraint: SameNumberOfRows<R1, R2> + SameNumberOfColumns<C1, C2> {
@@ -375,7 +376,7 @@ componentwise_binop_impl!(Sub, sub, ClosedSub;
 
 impl<T, R: DimName, C: DimName> iter::Sum for OMatrix<T, R, C>
 where
-    T: ClosedAdd + Zero + InlinedClone + 'static,
+    T: ClosedAdd + Zero + Scalar,
     DefaultAllocator: Allocator<T, R, C>,
 {
     fn sum<I: Iterator<Item = OMatrix<T, R, C>>>(iter: I) -> OMatrix<T, R, C> {
@@ -385,7 +386,7 @@ where
 
 impl<T, C: Dim> iter::Sum for OMatrix<T, Dynamic, C>
 where
-    T: ClosedAdd + Zero + InlinedClone + 'static,
+    T: ClosedAdd + Zero + Scalar,
     DefaultAllocator: Allocator<T, Dynamic, C>,
 {
     /// # Example
@@ -415,7 +416,7 @@ where
 
 impl<'a, T, R: DimName, C: DimName> iter::Sum<&'a OMatrix<T, R, C>> for OMatrix<T, R, C>
 where
-    T: ClosedAdd + Zero + InlinedClone + 'static,
+    T: ClosedAdd + Zero + Scalar,
     DefaultAllocator: Allocator<T, R, C>,
 {
     fn sum<I: Iterator<Item = &'a OMatrix<T, R, C>>>(iter: I) -> OMatrix<T, R, C> {
@@ -425,7 +426,7 @@ where
 
 impl<'a, T, C: Dim> iter::Sum<&'a OMatrix<T, Dynamic, C>> for OMatrix<T, Dynamic, C>
 where
-    T: ClosedAdd + Zero + InlinedClone + 'static,
+    T: ClosedAdd + Zero + Scalar,
     DefaultAllocator: Allocator<T, Dynamic, C>,
     OMatrix<T, Dynamic, C>: Clone,
 {
@@ -467,7 +468,7 @@ macro_rules! componentwise_scalarop_impl(
      $TraitAssign: ident, $method_assign: ident) => {
         impl<T, R: Dim, C: Dim, S> $Trait<T> for Matrix<T, R, C, S>
         where
-            T: $bound + InlinedClone,
+            T: $bound + Scalar,
             S: Storage<T, R, C>,
             DefaultAllocator: Allocator<T, R, C>
         {
@@ -493,7 +494,7 @@ macro_rules! componentwise_scalarop_impl(
 
         impl<'a, T, R: Dim, C: Dim, S> $Trait<T> for &'a Matrix<T, R, C, S>
         where
-            T: $bound + InlinedClone,
+            T: $bound + Scalar,
             S: Storage<T, R, C>,
             DefaultAllocator: Allocator<T, R, C>
         {
@@ -507,7 +508,7 @@ macro_rules! componentwise_scalarop_impl(
 
         impl<T, R: Dim, C: Dim, S> $TraitAssign<T> for Matrix<T, R, C, S>
         where
-            T: $bound + InlinedClone,
+            T: $bound + Scalar,
             S: StorageMut<T, R, C>
         {
             #[inline]
@@ -567,7 +568,7 @@ left_scalar_mul_impl!(u8, u16, u32, u64, usize, i8, i16, i32, i64, isize, f32, f
 impl<'a, 'b, T, R1: Dim, C1: Dim, R2: Dim, C2: Dim, SA, SB> Mul<&'b Matrix<T, R2, C2, SB>>
     for &'a Matrix<T, R1, C1, SA>
 where
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SA: Storage<T, R1, C1>,
     SB: Storage<T, R2, C2>,
     DefaultAllocator: Allocator<T, R1, C2>,
@@ -588,7 +589,7 @@ where
 impl<'a, T, R1: Dim, C1: Dim, R2: Dim, C2: Dim, SA, SB> Mul<Matrix<T, R2, C2, SB>>
     for &'a Matrix<T, R1, C1, SA>
 where
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SB: Storage<T, R2, C2>,
     SA: Storage<T, R1, C1>,
     DefaultAllocator: Allocator<T, R1, C2>,
@@ -605,7 +606,7 @@ where
 impl<'b, T, R1: Dim, C1: Dim, R2: Dim, C2: Dim, SA, SB> Mul<&'b Matrix<T, R2, C2, SB>>
     for Matrix<T, R1, C1, SA>
 where
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SB: Storage<T, R2, C2>,
     SA: Storage<T, R1, C1>,
     DefaultAllocator: Allocator<T, R1, C2>,
@@ -622,7 +623,7 @@ where
 impl<T, R1: Dim, C1: Dim, R2: Dim, C2: Dim, SA, SB> Mul<Matrix<T, R2, C2, SB>>
     for Matrix<T, R1, C1, SA>
 where
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SB: Storage<T, R2, C2>,
     SA: Storage<T, R1, C1>,
     DefaultAllocator: Allocator<T, R1, C2>,
@@ -644,7 +645,7 @@ where
     R1: Dim,
     C1: Dim,
     R2: Dim,
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SB: Storage<T, R2, C1>,
     SA: ContiguousStorageMut<T, R1, C1> + Clone,
     ShapeConstraint: AreMultipliable<R1, C1, R2, C1>,
@@ -661,7 +662,7 @@ where
     R1: Dim,
     C1: Dim,
     R2: Dim,
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone + 'static,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SB: Storage<T, R2, C1>,
     SA: ContiguousStorageMut<T, R1, C1> + Clone,
     ShapeConstraint: AreMultipliable<R1, C1, R2, C1>,
@@ -677,7 +678,7 @@ where
 /// # Special multiplications.
 impl<T, R1: Dim, C1: Dim, SA> Matrix<T, R1, C1, SA>
 where
-    T: Zero + One + ClosedAdd + ClosedMul + InlinedClone,
+    T: Zero + One + ClosedAdd + ClosedMul + Scalar,
     SA: Storage<T, R1, C1>,
 {
     /// Equivalent to `self.transpose() * rhs`.
@@ -798,7 +799,7 @@ where
         rhs: &Matrix<T, R2, C2, SB>,
         out: &mut Matrix<T, R3, C3, SC>,
     ) where
-        T: InlinedClone + 'static,
+        T: Scalar,
         SB: Storage<T, R2, C2>,
         SC: StorageMut<T, R3, C3>,
         ShapeConstraint: SameNumberOfRows<R3, R1>
@@ -855,7 +856,7 @@ where
 
 impl<T, D: DimName> iter::Product for OMatrix<T, D, D>
 where
-    T: Zero + One + ClosedMul + ClosedAdd + InlinedClone + 'static,
+    T: Zero + One + ClosedMul + ClosedAdd + Scalar,
     DefaultAllocator: Allocator<T, D, D>,
 {
     fn product<I: Iterator<Item = OMatrix<T, D, D>>>(iter: I) -> OMatrix<T, D, D> {
@@ -865,7 +866,7 @@ where
 
 impl<'a, T, D: DimName> iter::Product<&'a OMatrix<T, D, D>> for OMatrix<T, D, D>
 where
-    T: Zero + One + ClosedMul + ClosedAdd + InlinedClone + 'static,
+    T: Zero + One + ClosedMul + ClosedAdd + Scalar,
     DefaultAllocator: Allocator<T, D, D>,
 {
     fn product<I: Iterator<Item = &'a OMatrix<T, D, D>>>(iter: I) -> OMatrix<T, D, D> {

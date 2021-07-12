@@ -1,4 +1,7 @@
-// Matrix properties checks.
+//! Matrix properties checks.
+
+use std::fmt::Debug;
+
 use approx::RelativeEq;
 use num::{One, Zero};
 
@@ -9,7 +12,7 @@ use crate::base::dimension::Dim;
 use crate::base::storage::Storage;
 use crate::base::{DefaultAllocator, Matrix};
 
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     /// The total number of elements of this matrix.
     ///
     /// # Examples:

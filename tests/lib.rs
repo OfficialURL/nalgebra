@@ -7,7 +7,6 @@ compile_error!(
 #[cfg(feature = "abomonation-serialize")]
 extern crate abomonation;
 #[cfg(all(feature = "debug", feature = "compare", feature = "rand"))]
-#[macro_use]
 extern crate approx;
 extern crate nalgebra as na;
 extern crate num_traits as num;

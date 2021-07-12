@@ -53,7 +53,7 @@ impl<T: Debug, const R: usize, const C: usize> Debug for ArrayStorage<T, R, C> {
     }
 }
 
-unsafe impl<T, const R: usize, const C: usize> Storage<T, Const<R>, Const<C>>
+unsafe impl<T: Debug, const R: usize, const C: usize> Storage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
@@ -105,7 +105,7 @@ where
     }
 }
 
-unsafe impl<T, const R: usize, const C: usize> StorageMut<T, Const<R>, Const<C>>
+unsafe impl<T: Debug, const R: usize, const C: usize> StorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
@@ -121,21 +121,21 @@ where
     }
 }
 
-unsafe impl<T, const R: usize, const C: usize> ContiguousStorage<T, Const<R>, Const<C>>
+unsafe impl<T: Debug, const R: usize, const C: usize> ContiguousStorage<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }
 
-unsafe impl<T, const R: usize, const C: usize> ContiguousStorageMut<T, Const<R>, Const<C>>
+unsafe impl<T: Debug, const R: usize, const C: usize> ContiguousStorageMut<T, Const<R>, Const<C>>
     for ArrayStorage<T, R, C>
 where
     DefaultAllocator: Allocator<T, Const<R>, Const<C>, Buffer = Self>,
 {
 }
 
-impl<T, const R1: usize, const C1: usize, const R2: usize, const C2: usize>
+impl<T: Debug, const R1: usize, const C1: usize, const R2: usize, const C2: usize>
     ReshapableStorage<T, Const<R1>, Const<C1>, Const<R2>, Const<C2>> for ArrayStorage<T, R1, C1>
 where
     Const<R1>: ToTypenum,

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo};
 use std::slice;
@@ -53,7 +54,8 @@ macro_rules! slice_storage_impl(
             #[inline]
             pub unsafe fn new_unchecked<RStor, CStor, S>(storage: $SRef, start: (usize, usize), shape: (R, C))
                 -> $T<'a, T, R, C, S::RStride, S::CStride>
-                where RStor: Dim,
+                where T:     Debug,
+                      RStor: Dim,
                       CStor: Dim,
                       S:     $Storage<T, RStor, CStor> {
 
@@ -68,7 +70,8 @@ macro_rules! slice_storage_impl(
                                                                                         shape:   (R, C),
                                                                                         strides: (RStride, CStride))
                 -> $T<'a, T, R, C, RStride, CStride>
-                where RStor: Dim,
+                where T: Debug,
+                      RStor: Dim,
                       CStor: Dim,
                       S: $Storage<T, RStor, CStor>,
                       RStride: Dim,
@@ -78,7 +81,7 @@ macro_rules! slice_storage_impl(
             }
         }
 
-        impl <'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim>
+        impl <'a, T: Debug, R: Dim, C: Dim, RStride: Dim, CStride: Dim>
             $T<'a, T, R, C, RStride, CStride>
         where
             Self: ContiguousStorage<T, R, C>
@@ -125,7 +128,7 @@ impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Clone
     }
 }
 
-impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim>
+impl<'a, T: Debug, R: Dim, C: Dim, RStride: Dim, CStride: Dim>
     SliceStorageMut<'a, T, R, C, RStride, CStride>
 where
     Self: ContiguousStorageMut<T, R, C>,
@@ -144,7 +147,7 @@ where
 
 macro_rules! storage_impl(
     ($($T: ident),* $(,)*) => {$(
-        unsafe impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Storage<T, R, C>
+        unsafe impl<'a, T: Debug, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Storage<T, R, C>
             for $T<'a, T, R, C, RStride, CStride> {
 
             type RStride = RStride;
@@ -218,7 +221,7 @@ macro_rules! storage_impl(
 
 storage_impl!(SliceStorage, SliceStorageMut);
 
-unsafe impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> StorageMut<T, R, C>
+unsafe impl<'a, T: Debug, R: Dim, C: Dim, RStride: Dim, CStride: Dim> StorageMut<T, R, C>
     for SliceStorageMut<'a, T, R, C, RStride, CStride>
 {
     #[inline]
@@ -238,33 +241,33 @@ unsafe impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> StorageMut<T, R, 
     }
 }
 
-unsafe impl<'a, T, R: Dim, CStride: Dim> ContiguousStorage<T, R, U1>
+unsafe impl<'a, T: Debug, R: Dim, CStride: Dim> ContiguousStorage<T, R, U1>
     for SliceStorage<'a, T, R, U1, U1, CStride>
 {
 }
-unsafe impl<'a, T, R: Dim, CStride: Dim> ContiguousStorage<T, R, U1>
+unsafe impl<'a, T: Debug, R: Dim, CStride: Dim> ContiguousStorage<T, R, U1>
     for SliceStorageMut<'a, T, R, U1, U1, CStride>
 {
 }
-unsafe impl<'a, T, R: Dim, CStride: Dim> ContiguousStorageMut<T, R, U1>
+unsafe impl<'a, T: Debug, R: Dim, CStride: Dim> ContiguousStorageMut<T, R, U1>
     for SliceStorageMut<'a, T, R, U1, U1, CStride>
 {
 }
 
-unsafe impl<'a, T, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorage<T, R, C>
+unsafe impl<'a, T: Debug, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorage<T, R, C>
     for SliceStorage<'a, T, R, C, U1, R>
 {
 }
-unsafe impl<'a, T, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorage<T, R, C>
+unsafe impl<'a, T: Debug, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorage<T, R, C>
     for SliceStorageMut<'a, T, R, C, U1, R>
 {
 }
-unsafe impl<'a, T, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorageMut<T, R, C>
+unsafe impl<'a, T: Debug, R: DimName, C: Dim + IsNotStaticOne> ContiguousStorageMut<T, R, C>
     for SliceStorageMut<'a, T, R, C, U1, R>
 {
 }
 
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     #[inline]
     fn assert_slice_index(
         &self,
@@ -672,7 +675,7 @@ pub type MatrixSliceMut<'a, T, R, C, RStride = U1, CStride = R> =
     Matrix<T, R, C, SliceStorageMut<'a, T, R, C, RStride, CStride>>;
 
 /// # Slicing based on index and length
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     matrix_slice_impl!(
      self: &Self, MatrixSlice, SliceStorage, Storage.get_address_unchecked(), &self.data;
      row,
@@ -702,7 +705,7 @@ impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 }
 
 /// # Mutable slicing based on index and length
-impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     matrix_slice_impl!(
      self: &mut Self, MatrixSliceMut, SliceStorageMut, StorageMut.get_address_unchecked_mut(), &mut self.data;
      row_mut,
@@ -867,7 +870,7 @@ impl<D: Dim> SliceRange<D> for RangeInclusive<usize> {
 
 // TODO: see how much of this overlaps with the general indexing
 // methods from indexing.rs.
-impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
     /// Slices a sub-matrix containing the rows indexed by the range `rows` and the columns indexed
     /// by the range `cols`.
     #[inline]
@@ -911,7 +914,7 @@ impl<T, R: Dim, C: Dim, S: Storage<T, R, C>> Matrix<T, R, C, S> {
 
 // TODO: see how much of this overlaps with the general indexing
 // methods from indexing.rs.
-impl<T, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
+impl<T: Debug, R: Dim, C: Dim, S: StorageMut<T, R, C>> Matrix<T, R, C, S> {
     /// Slices a mutable sub-matrix containing the rows indexed by the range `rows` and the columns
     /// indexed by the range `cols`.
     pub fn slice_range_mut<RowRange, ColRange>(
