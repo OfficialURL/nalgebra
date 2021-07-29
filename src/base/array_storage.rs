@@ -102,6 +102,20 @@ where
     unsafe fn as_slice_unchecked(&self) -> &[T] {
         std::slice::from_raw_parts(self.ptr(), R * C)
     }
+
+    fn clone_storage(&self) -> Self
+    where
+        T: Clone,
+    {
+        self.clone()
+    }
+
+    fn fmt_storage(&self,f: &mut Formatter) -> fmt::Result
+    where
+        T: Debug,
+    {
+        self.fmt(f)
+    }
 }
 
 unsafe impl<T, const R: usize, const C: usize> StorageMut<T, Const<R>, Const<C>>

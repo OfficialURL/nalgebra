@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo};
@@ -126,6 +127,25 @@ impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Clone
     }
 }
 
+impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Copy
+    for SliceStorageMut<'a, T, R, C, RStride, CStride>
+{
+}
+
+impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim> Clone
+    for SliceStorageMut<'a, T, R, C, RStride, CStride>
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            ptr: self.ptr,
+            shape: self.shape,
+            strides: self.strides,
+            _phantoms: PhantomData,
+        }
+    }
+}
+
 impl<'a, T, R: Dim, C: Dim, RStride: Dim, CStride: Dim>
     SliceStorageMut<'a, T, R, C, RStride, CStride>
 where
@@ -212,6 +232,20 @@ macro_rules! storage_impl(
                 else {
                     slice::from_raw_parts(self.ptr, 0)
                 }
+            }
+
+            fn clone_storage(&self) -> Self
+            where
+                T: Clone,
+            {
+                *self
+            }
+
+            fn fmt_storage(&self, f: &mut Formatter) -> FmtResult
+            where
+                T: Debug,
+            {
+                self.fmt(f)
             }
         }
     )*}

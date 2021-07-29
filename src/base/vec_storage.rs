@@ -1,4 +1,4 @@
-#[cfg(feature = "abomonation-serialize")]
+use std::fmt::{Debug,Formatter,Result as FmtResult};#[cfg(feature = "abomonation-serialize")]
 use std::io::{Result as IOResult, Write};
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
@@ -204,6 +204,20 @@ where
     unsafe fn as_slice_unchecked(&self) -> &[T] {
         &self.data
     }
+
+    fn clone_storage(&self) -> Self
+    where
+        T: Clone,
+    {
+        self.clone()
+    }
+
+    fn fmt_storage(&self,f: &mut Formatter) -> FmtResult
+    where
+        T: Debug,
+    {
+        self.fmt(f)
+    }
 }
 
 unsafe impl<T, R: DimName> Storage<T, R, Dynamic> for VecStorage<T, R, Dynamic>
@@ -253,6 +267,20 @@ where
     #[inline]
     unsafe fn as_slice_unchecked(&self) -> &[T] {
         &self.data
+    }
+
+    fn clone_storage(&self) -> Self
+    where
+        T: Clone,
+    {
+        self.clone()
+    }
+
+    fn fmt_storage(&self,f: &mut Formatter) -> FmtResult
+    where
+        T: Debug,
+    {
+        self.fmt(f)
     }
 }
 

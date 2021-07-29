@@ -153,7 +153,6 @@ pub type MatrixCross<T, R1, C1, R2, C2> =
 /// dynamically-sized column vector should be represented as a `Matrix<T, Dynamic, U1, S>` (given
 /// some concrete types for `T` and a compatible data storage type `S`).
 #[repr(transparent)]
-#[derive(Clone, Copy)]
 pub struct Matrix<T, R, C, S> {
     /// The data storage that contains all the matrix components. Disappointed?
     ///
@@ -193,11 +192,21 @@ pub struct Matrix<T, R, C, S> {
     _phantoms: PhantomData<(T, R, C)>,
 }
 
-impl<T, R: Dim, C: Dim, S: fmt::Debug> fmt::Debug for Matrix<T, R, C, S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Matrix").field("data", &self.data).finish()
+impl<T: fmt::Debug, R: Dim, C: Dim, S: Storage<T, R, C>> fmt::Debug for Matrix<T, R, C, S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Matrix { data: ")?;
+        self.data.fmt_storage(f)?;
+        f.write_str(" }")
     }
 }
+
+impl<T: Clone, R: Dim, C: Dim, S: Storage<T, R, C>> Clone for Matrix<T, R, C, S> {
+    fn clone(&self) -> Self {
+        unsafe { Self::from_data_statically_unchecked(self.data.clone_storage()) }
+    }
+}
+
+impl<T: Copy, R: Dim, C: Dim, S: Storage<T, R, C> + Copy> Copy for Matrix<T, R, C, S> {}
 
 impl<T, R: Dim, C: Dim, S> Default for Matrix<T, R, C, S>
 where

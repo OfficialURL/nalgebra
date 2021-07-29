@@ -131,6 +131,16 @@ pub unsafe trait Storage<T, R: Dim, C: Dim = U1>: Sized {
     where
         T: Clone,
         DefaultAllocator: Allocator<T, R, C>;
+
+    /// Clones the storage.
+    fn clone_storage(&self) -> Self
+    where
+        T: Clone;
+
+    /// Formats the storage.
+    fn fmt_storage(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
+    where
+        T: std::fmt::Debug;
 }
 
 /// Trait implemented by matrix data storage that can provide a mutable access to its elements.
